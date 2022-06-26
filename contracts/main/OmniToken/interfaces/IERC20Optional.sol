@@ -4,7 +4,7 @@
 // From:
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/IERC20Metadata.sol
 
-pragma solidity ^0.8.14;
+pragma solidity ^0.8.15;
 
 import "./IERC20.sol";
 

@@ -6,7 +6,7 @@
 //
 // Officially hosted at: https://github.com/dublr/dublr
 
-pragma solidity ^0.8.14;
+pragma solidity ^0.8.15;
 
 import "../OmniToken/OmniToken.sol";
 

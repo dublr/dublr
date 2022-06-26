@@ -489,7 +489,7 @@ describe("Dublr", () => {
 
   // Test Dublr-specific API
 
-  it("Minting can be disabled, but by holder only", async () => {
+  it("Minting can be disabled, but by owner only", async () => {
     await contract0._owner_enableBuying(false);
     await contract0._owner_enableMinting(false);
     await expect(contract0["buy()"]({value: initialMintPriceETHPerDUBLR_x1e9 * 10}))
