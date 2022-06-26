@@ -36,7 +36,8 @@ Several extensions are added on top of ERC20 by OmniToken, for addressing vulner
 
 * The `increaseAllowance()` / `decreaseAllowance()` extension proposed [and adopted by OpenZeppelin](https://docs.openzeppelin.com/contracts/2.x/api/token/erc20#ERC20-increaseAllowance-address-uint256-) for mitigating the approval double-spend race condition vulnerability in ERC20.
 * The "atomic compare-and-set" approval mechanism [proposed](https://docs.google.com/document/d/1YLPtQxZu1UAvO9cZ1O2RPXBbT0mooh4DYKjA_jp-RLM/edit) for solving the same `approve`/`transferFrom` vulnerability in ERC20.
-* The time-limited token allowances mechanism [proposed](https://github.com/vrypan/EIPs/blob/master/EIPS/eip-draft_time_limited_token_allowances.md) for reducing the chance that a forgotten allowance could be sent to an attacker by a clickjacking attack.
+* A modified version of the time-limited token allowances mechanism [proposed](https://github.com/vrypan/EIPs/blob/master/EIPS/eip-draft_time_limited_token_allowances.md) for reducing the chance that a forgotten allowance could be sent to an attacker by a clickjacking attack.
+  * OmniToken uses seconds rather than number of blocks (as given in the proposal) for expiration time, since inter-block time intervals can vary. This is enabled by default (see below).
 
 ### Nonstandard behavior for mitigating vulnerabilities in token standards
 
@@ -46,10 +47,10 @@ OmniToken breaks with token standards in a few ways by default, in order to incr
   * It is almost never the correct thing to do to send tokens directly to a contract, although some multisig wallets may support or even require sending ERC20 tokens directly to them, and these will not work unless one of the following solutions is employed:
     * You can use the ERC777/ERC1363/ERC4524 API instead of the ERC20 API to send tokens to a contract (a non-EOA address), as long as the wallet implements the appropriate token receiver interface. Please ask your multisig wallet creator to support at least one of these interfaces for receiving tokens, preferably ERC1363 and/or ERC4524. (The receiver interfaces for these two standards are so simple and so similar to each other that it would probably make sense to implement both of them.)
     * The owner/deployer of the OmniToken contract may call `_owner_enableTransferToContracts(true)` to restore ERC20 compatibility.
-* By default, OmniToken prevents setting the allowance to a nonzero value when the current allowance has a zero value. This is to prevent an allowance double-spend race condition attack. This is the most well-known vulnerabilty of ERC20, so you should expect all dapps and contracts to set allowance to zero before attempting to change it to a non-zero value, however this behavior is not required by the ERC20 standard, so OmniToken deviates from the ERC20 standard by default.
-  * The owner/deployer of the OmniToken contract may call ``_owner_enableChangingAllowanceWithoutZeroing(true)`(true)` to restore ERC20 compatibility.
-* OmniToken uses the time-limited token allowances mechanism (see above) to expire allowances after one hour by default. This breaks compatibility with ERC20. (Allowances that do not expire, and that are forgotten about by token owners, have been the cause of many millions of dollars of lost tokens due to vulnerable dapps draining accounts, etc.)
-  * To specify how long an allowance should remain valid on a case-by-case basis, use the `approveWithExpiration` extension function.
+* By default, OmniToken prevents setting allowances to a nonzero value unless the current allowance has a zero value. This is to prevent an allowance double-spend race condition attack. This is the most well-known vulnerabilty of ERC20, so you should expect all dapps and contracts to set allowance to zero before attempting to change allowance from one non-zero value to another; however, this behavior is not required by the ERC20 standard, so OmniToken deviates from the ERC20 standard by default.
+  * The owner/deployer of the OmniToken contract may call `_owner_enableChangingAllowanceWithoutZeroing(true)` to restore ERC20 compatibility.
+* OmniToken enables the [time-limited token allowances](https://github.com/vrypan/EIPs/blob/master/EIPS/eip-draft_time_limited_token_allowances.md) mechanism by default, expiring allowances after one hour. This breaks compatibility with ERC20. (Allowances that do not expire, and that are forgotten about by token owners, have been the cause of many millions of dollars of lost tokens due to vulnerable dapps draining accounts, etc.)
+  * To specify how long an allowance should remain valid on a case-by-case basis, use the `approveWithExpiration` ERC20 extension function.
   * The owner/deployer of the OmniToken contract may call `_owner_setDefaultAllowanceExpirationSec(type(uint256).max)` to restore ERC20 compatibility.
 * Unlimited allowances (supported by some ERC20 exchanges, by setting a spending allowance to `2**256 - 1 == type(uint256).max`) are supported by Omnitoken, but they are disabled by default, since unlimited allowances can cause you to lose all your tokens in case of a security vulnerability in a smart contract or dapp that drains your account. ($120M was stolen in the [BADGER frontend injection attack](https://rekt.news/badger-rekt/) due to [unlimited allowances](https://kalis.me/unlimited-erc20-allowances/).)
   * As a practical matter, "unlimited" allowances are supported on all ERC20 implementations by setting an allowance to some very large number that is less than `2**256 - 1`. However since `2**256 - 1` is treated specially on some exchanges, OmniToken does provide support for this, if enabled, and blocks the use of this value, if disabled.
@@ -65,15 +66,15 @@ OmniToken is locked down against every known potential smart contract security p
 * The [Checks-Effects-Interactions pattern](https://blog.openzeppelin.com/reentrancy-after-istanbul/) is used everywhere in OmniToken to prevent reentrancy attacks.
   * e.g. all state (e.g. allowances and balances) is finalized before calling external contracts via the ERC777/ERC1363/ERC4524 notification APIs, in order to follow the Checks-Effects-Interactions pattern.
 * Strong reentrancy protection is implemented via function modifiers (`stateUpdater` for functions that modify core account state, and `extCaller` for functions that call other contracts; a `stateUpdater` cannot be called deeper in the call stack than an `extCaller`).
-* The OmniToken API is extensively unit-tested and carefully internally audited. (It is the user's responsibility to perform their own 3rd party security audit if necessary to validate that OmniToken is bug-free and vulnerability-free.)
-* Extensive parameter validity checks are implemented for all external functions.
-* All APIs can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
-* Several classes of vulnerability are prevented by using a recent version of Solidity (`^0.8.14`) to compile OmniToken:
+* Several classes of vulnerability are prevented by using a recent version of Solidity to compile OmniToken:
   * Short address attacks are prevented by utilizing [Solidity >= 0.5.0](https://github.com/ethereum/solidity/pull/4224).
   * Overflow and underflow attacks are prevented by utilizing the default checked arithmetic support of [Solidity >= 0.8.0](https://blog.soliditylang.org/2020/12/16/solidity-v0.8.0-release-announcement/).
   * The fallback function is disabled (by not being defined in OmniToken), to block any [phantom function call](https://media.dedaub.com/phantom-functions-and-the-billion-dollar-no-op-c56f062ae49f) vulnerabilities from being triggered in callers, by using [Solidity >= 0.6.0](https://betterprogramming.pub/solidity-0-6-x-features-fallback-and-receive-functions-69895e3ffe). Also the `receive` and `fallback` payable functions are not defined by OmniToken, to prevent triggering phantom function call issues in other contracts.
 * Several APIs that are safer than ERC20 are implemented in OmniToken: ERC777, ERC1363 and ERC4524.
 * The OmniToken and Dublr API is copiously documented using NatSpec, so that all functions, function parameters, events, and event parameters are explained in EtherScan and in the source code. This will reduce confusion about how to properly and safely call the API.
+* The OmniToken code is extensively unit-tested and 3rd-party-audited.
+* Extensive parameter validity checks are implemented for all external functions.
+* All APIs can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
 
 ### Additional APIs
 

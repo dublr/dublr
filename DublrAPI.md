@@ -142,7 +142,7 @@ function _owner_enableMinting(bool enable) external ownerOnly;
 function _owner_cancelAllSellOrders() external ownerOnly;
 ```
 
-`_owner_enableBuying(false)` disables buying but not minting, so `buy()` will still work unless minting is also disabled.
+`_owner_enableBuying(false)` disables buying but not minting, so `buy()` will still work (by minting tokens) unless minting is also disabled.
 
 ## Gas usage
 
