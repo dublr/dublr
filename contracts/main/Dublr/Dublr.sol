@@ -368,6 +368,12 @@ contract Dublr is DublrInternal, IDublrDEX {
      * must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()`
      * or `fallback()` functions to receive payment.
      *
+     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
+     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
+     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `Refund`
+     * event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even
+     * multiple of the token price (i.e. change is given where appropriate).
+     *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
      * the laws of any legal jurisdiction in which you hold or use the Dublr token.
@@ -399,14 +405,14 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Market-matching the buyer with sellers, and executing orders: -----------------------------------------------
 
-        while (
+        for (uint256 numSellOrdersBought = 0;
                 // If buyingEnabled is false, skip over the buying stage (minting is still enabled unless
                 // mintingEnabled is also false). This allows exchange function to be shut down if necessary
                 // without affecting minting.
                 buyingEnabled
                 // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
                 // or until we run out of orders.
-                && buyOrderRemainingETHWEI > 0 && orderBook.length > 0) {
+                && buyOrderRemainingETHWEI > 0 && orderBook.length > 0; ) {
                 
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
@@ -451,11 +457,11 @@ contract Dublr is DublrInternal, IDublrDEX {
                     // book, and refunded remaining ETH balance to the buyer as change.
                     if (buyOrderRemainingETHWEI > 0) {
                         amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
-                        // Emit RefundChange event
-                        emit RefundChange(buyer, buyOrderRemainingETHWEI);
                         // The minting price must be higher than the current order, so minting will not be
                         // triggered either.
                         buyOrderRemainingETHWEI = 0;
+                        // Emit RefundChange event
+                        emit RefundChange(buyer, buyOrderRemainingETHWEI);
                     }
                     break;
                 }
@@ -525,6 +531,21 @@ contract Dublr is DublrInternal, IDublrDEX {
             emit Buy(buyer, sellOrder.seller,
                     sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
+
+            unchecked { ++numSellOrdersBought; }  // Save gas by using unchecked
+            
+            if (numSellOrdersBought == MAX_SELL_ORDERS_PER_BUY) {
+                // Stop after processing MAX_SELL_ORDERS_PER_BUY buy orders, to prevent uncontrolled resource
+                // consumption DoS attacks. See: https://swcregistry.io/docs/SWC-128
+                
+                // Refund the rest of the remaining ETH to the buyer
+                amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
+                buyOrderRemainingETHWEI = 0;
+                // Emit RefundChange event
+                emit RefundChange(buyer, buyOrderRemainingETHWEI);
+                // Stop processing sell orders
+                break;
+            }
         }
 
         // Minting: ----------------------------------------------------------------------------------------------------
@@ -685,6 +706,12 @@ contract Dublr is DublrInternal, IDublrDEX {
      * (after fee deduction), the buyer must be able to receive ETH payments. In other words, the buyer account
      * must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()`
      * or `fallback()` functions to receive payment.
+     *
+     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
+     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
+     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `Refund`
+     * event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even
+     * multiple of the token price (i.e. change is given where appropriate).
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by

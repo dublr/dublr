@@ -80,6 +80,12 @@ abstract contract DublrInternal is OmniToken {
     /** @dev The trading fee of 0.1%, = 0.001*(1<<30). */
     uint256 internal constant TRADING_FEE_FIXED_POINT = 0x10624e;
 
+    /**
+     * @dev The maximum number of sell orders that can be bought at once, to prevent uncontrolled resource consumption
+     * DoS attacks. See: https://swcregistry.io/docs/SWC-128
+     */
+    uint256 internal constant MAX_SELL_ORDERS_PER_BUY = 20;
+
     // -----------------------------------------------------------------------------------------------------------------
     // Minting values set by the constructor
 
