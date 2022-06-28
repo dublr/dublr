@@ -457,11 +457,11 @@ contract Dublr is DublrInternal, IDublrDEX {
                     // book, and refunded remaining ETH balance to the buyer as change.
                     if (buyOrderRemainingETHWEI > 0) {
                         amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
+                        // Emit RefundChange event
+                        emit RefundChange(buyer, buyOrderRemainingETHWEI);
                         // The minting price must be higher than the current order, so minting will not be
                         // triggered either.
                         buyOrderRemainingETHWEI = 0;
-                        // Emit RefundChange event
-                        emit RefundChange(buyer, buyOrderRemainingETHWEI);
                     }
                     break;
                 }
@@ -540,10 +540,10 @@ contract Dublr is DublrInternal, IDublrDEX {
                 
                 // Refund the rest of the remaining ETH to the buyer
                 amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
-                buyOrderRemainingETHWEI = 0;
                 // Emit RefundChange event
                 emit RefundChange(buyer, buyOrderRemainingETHWEI);
                 // Stop processing sell orders
+                buyOrderRemainingETHWEI = 0;
                 break;
             }
         }
