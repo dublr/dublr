@@ -43,7 +43,7 @@ contract OmniToken is OmniTokenInternal {
 
     /** @dev The expiration time that is treated as unlimited, if unlimited expiration is enabled. */
     uint256 internal constant UNLIMITED_EXPIRATION = type(uint256).max;
-    
+
     /**
      * @notice The default number of seconds that an allowance is valid for, after the allowance or permit
      * is granted, before the allowance expires.
@@ -785,6 +785,8 @@ contract OmniToken is OmniTokenInternal {
             // Have to set allowance to zero (or let it expire) before it can be set to non-zero
             require(allowance(/* holder = */ msg.sender, spender) == 0, "Must set allowance to zero first");
         }
+        // Timestamps can be fudged up to 15 seconds by miners, so expirationSec needs to be greater than 15
+        require(expirationSec > 15, "expirationSec must be >15");
         _approve(/* holder = */ msg.sender, spender, amount,
                 expirationSec == UNLIMITED_EXPIRATION ? expirationSec
                         // solhint-disable-next-line not-rely-on-time
