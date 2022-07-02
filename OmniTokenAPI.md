@@ -43,7 +43,7 @@ Several extensions are added on top of ERC20 by OmniToken, for addressing vulner
 
 OmniToken breaks with token standards in a few ways by default, in order to increase safety and security. This may cause some compatibility issues, so these changes can be disabled.
 
-* OmniToken prevents ERC20's `transfer` and `transferFrom` functions from sending tokens to contracts by default, reverting with `Can't transfer to a contract`. Hundreds of millions of dollars have been lost in the ERC20 ecosystem by sending ETH or ERC20 tokens to non-EOA addresses -- sending to a non-proxied contract that does not how to use tokens that are sent to it is equivalent to burning the tokens irretrievably.
+* OmniToken prevents ERC20's `transfer` and `transferFrom` functions from sending tokens to contracts by default, reverting with `Can't transfer to a contract`. Hundreds of millions of dollars have been lost in the ERC20 ecosystem by sending ETH or ERC20 tokens to non-EOA addresses -- sending to a non-proxied contract that does not know how to use tokens that are sent to it is equivalent to burning the tokens irretrievably.
   * It is almost never the correct thing to do to send tokens directly to a contract, although some multisig wallets may support or even require sending ERC20 tokens directly to them, and these will not work unless one of the following solutions is employed:
     * You can use the ERC777/ERC1363/ERC4524 API instead of the ERC20 API to send tokens to a contract (a non-EOA address), as long as the wallet implements the appropriate token receiver interface. Please ask your multisig wallet creator to support at least one of these interfaces for receiving tokens, preferably ERC1363 and/or ERC4524. (The receiver interfaces for these two standards are so simple and so similar to each other that it would probably make sense to implement both of them.)
     * The owner/deployer of the OmniToken contract may call `_owner_enableTransferToContracts(true)` to restore ERC20 compatibility.
@@ -74,7 +74,7 @@ OmniToken is locked down against every known potential smart contract security p
 * The OmniToken and Dublr API is copiously documented using NatSpec, so that all functions, function parameters, events, and event parameters are explained in EtherScan and in the source code. This will reduce confusion about how to properly and safely call the API.
 * The OmniToken code is extensively unit-tested and 3rd-party-audited.
 * Extensive parameter validity checks are implemented for all external functions.
-* All APIs can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
+* All token APIs (ERC20, ERC777, ERC1363, and ERC4524) can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
 
 ### Additional APIs
 

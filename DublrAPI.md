@@ -51,7 +51,7 @@ Dublr uses a polynomial approximation to the exponential function, so the doubli
 
 The mint price is returned as `0` after 30 doubling periods (90 days each) from the creation of the Dublr contract, and minting is disabled after this time (i.e. after ~7.5 years total), fixing the total supply forever.
 
-The initial mint price is ETH per DUBLR is 0.000005, meaning that initially, 1/0.000005 == 200000 DUBLR tokens are minted for every ETH token spent by a buyer. If 1 ETH is equivalent to US$2000, then this means 1 DUBLR is equivalent to US$0.01. Ninety days after contract launch, 1 DUBLR will be equivalent to US$0.02. (See [Disclaimers](README.md#Disclaimers) re. non-monetary-equivalence of DUBLR tokens.)
+The initial mint price is ETH per DUBLR is 0.000005, meaning that initially, 1/0.000005 == 200000 DUBLR tokens are minted for every ETH token spent by a buyer. If you spent 1 ETH wei right after the Dublr contract is launched, you would end up with 200000 DUBLR wei (both tokens use the same equivalence of 1 token = `10^18` wei), and ninety days later, after the mint price has doubled once, spending another 1 ETH on minting would cause only roughly 100000 DUBLR tokens to be minted. (See [Disclaimers](README.md#Disclaimers) re. non-monetary-equivalence of DUBLR tokens.)
 
 However, minting will also cease when the supply of tokens listed for sale in the built-in DEX, at a price below the current mint price, exceeds buyer demand. This will happen once the minting price becomes exorbitant relative to the market price.
 
@@ -61,7 +61,7 @@ However, minting will also cease when the supply of tokens listed for sale in th
 function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external;
 ```
 
-Lists `amountDUBLRWEI` DUBLR tokens (measured in DUBLR wei, where 1 DUBLR wei = 10^-18 DUBLR) for sale, at a price of `priceETHPerDUBLR_x1e9 * 10^-9` ETH tokens per DUBLR token.
+Lists `amountDUBLRWEI` DUBLR tokens (measured in DUBLR wei, where 1 DUBLR = `10^18` DUBLR wei) for sale, at a price of `priceETHPerDUBLR_x1e9 * 10^-9` ETH tokens per DUBLR token.
 
 When tokens are listed for sale, `amountDUBLRWEI` tokens are deducted from the seller's balance. The listed tokens are returned to the seller's balance if the seller cancels the order. The listed tokens are moved to the buyer's balance if a buyer buys the order, minus market fees. Buyers may buy part or all of an active sell order.
 
@@ -126,7 +126,11 @@ Buys as many tokens as can be afforded given the payable ETH value of the functi
 
 If a buyer buys DUBLR tokens from a sell order, the DUBLR tokens are transferred from the orderbook to the buyer, and the ETH equivalent is transferred from the buyer to the seller, minus market fees.
 
-Note that a market taker fee of 0.1% is charged from the ETH order amount, on top of the price of sell orders that are bought from the built-in decentralized exchange (DEX). For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens, similarly to how tokens are exchanged for ETH in an ICO.
+Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price (after fee deduction), the buyer must be able to receive ETH payments. In other words, the buyer account must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()` or `fallback()` functions to receive payment.
+
+Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange` event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even multiple of the token price (i.e. change is given where appropriate).
+
+Note that a market taker fee of 0.1% is charged from the ETH order amount, on top of the price of sell orders that are bought from the built-in decentralized exchange (DEX). For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens.
 
 ## Owner API
 
