@@ -66,6 +66,9 @@ OmniToken is locked down against every known potential smart contract security p
 * The [Checks-Effects-Interactions pattern](https://blog.openzeppelin.com/reentrancy-after-istanbul/) is used everywhere in OmniToken to prevent reentrancy attacks.
   * e.g. all state (e.g. allowances and balances) is finalized before calling external contracts via the ERC777/ERC1363/ERC4524 notification APIs, in order to follow the Checks-Effects-Interactions pattern.
 * Strong reentrancy protection is implemented via function modifiers (`stateUpdater` for functions that modify core account state, and `extCaller` for functions that call other contracts; a `stateUpdater` cannot be called deeper in the call stack than an `extCaller`).
+* Delegate calls into the OmniToken contract are blocked for all `stateUpdater` functions, so that:
+  * the OmniToken contract cannot inadvertently modify the state of another contract, under the control of an attacker (preventing OmniToken from participating in [Mad Gadget](https://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/) style chained attacks);
+  * the events that are output by OmniToken always represent changes to the internal state of the deployed OmniToken contract, and not changes that were redirected to another contract by an attacker (ensuring that OmniToken events are trustworthy to external observers).
 * Several classes of vulnerability are prevented by using a recent version of Solidity to compile OmniToken:
   * Short address attacks are prevented by utilizing [Solidity >= 0.5.0](https://github.com/ethereum/solidity/pull/4224).
   * Overflow and underflow attacks are prevented by utilizing the default checked arithmetic support of [Solidity >= 0.8.0](https://blog.soliditylang.org/2020/12/16/solidity-v0.8.0-release-announcement/).
