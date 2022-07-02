@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // From: https://eips.ethereum.org/EIPS/eip-4524
 
-pragma solidity ^0.8.15;
+pragma solidity 0.8.15;
 
 import "./IERC20.sol";
 import "./IERC165.sol";
