@@ -119,17 +119,12 @@ contract Dublr is DublrInternal, IDublrDEX {
         // x = 1 + x/1024
         x = FIXED_POINT + x / 1024;
         // x = x**1024
-        // slither-disable-next-line divide-before-multiply
-        x = x * x / FIXED_POINT; // => x**2
-        x = x * x / FIXED_POINT; // => x**4
-        x = x * x / FIXED_POINT; // => x**8
-        x = x * x / FIXED_POINT; // => x**16
-        x = x * x / FIXED_POINT; // => ...
-        x = x * x / FIXED_POINT;
-        x = x * x / FIXED_POINT;
-        x = x * x / FIXED_POINT;
-        x = x * x / FIXED_POINT; // => ...
-        x = x * x / FIXED_POINT; // => x**1024
+        // Obtained via 10 iterations, since x**(2**10) == x**1024
+        for (uint256 i = 0; i < 10; ) {
+            // slither-disable-next-line divide-before-multiply
+            x = x * x / FIXED_POINT;
+            unchecked { ++i; }  // Save gas
+        }
         // x is now an estimate of p, the factor increase in price, in fixed point.
         // Multiply x by the initial mint price to get the current mint price in fixed point,
         // then convert back from fixed point
@@ -370,7 +365,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      *
      * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
      * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
-     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `Refund`
+     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange`
      * event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even
      * multiple of the token price (i.e. change is given where appropriate).
      *
@@ -554,9 +549,9 @@ contract Dublr is DublrInternal, IDublrDEX {
         // mint price, switch to minting
         if (buyOrderRemainingETHWEI > 0) {
             // Check minting is enabled & is allowed by the caller
-            require(mintingEnabled && allowMinting, "Out of sell orders, and minting is disabled");
+            require(mintingEnabled && allowMinting, "Out of sell orders; minting disabled");
             // If mint price is 0, then the minting period has finished, and we can't fulfill the entire buy order
-            require(mintPriceETHPerDUBLR_x1e9 > 0, "Out of sell orders, and minting has ended");
+            require(mintPriceETHPerDUBLR_x1e9 > 0, "Out of sell orders; minting ended");
 
             // Mint DUBLR tokens into buyer's account: -----------------------------------------------------------------
 

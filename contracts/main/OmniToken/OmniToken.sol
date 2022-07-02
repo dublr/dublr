@@ -551,7 +551,7 @@ contract OmniToken is OmniTokenInternal {
             returns (bool success) {
         if (!_changingAllowanceWithoutZeroingEnabled && amount != 0) {
             // ERC20 safety: have to set allowance to zero (or let it expire) before it can be set to non-zero
-            require(allowance(/* holder = */ msg.sender, spender) == 0, "Must set allowance to zero first");
+            require(allowance(/* holder = */ msg.sender, spender) == 0, "Curr allowance nonzero");
         }
         _approve(/* holder = */ msg.sender, spender, amount, defaultAllowanceExpirationTime(), "");
         return true;
@@ -783,7 +783,7 @@ contract OmniToken is OmniTokenInternal {
             external erc20 override(IERC20TimeLimitedTokenAllowances) returns (bool success) {
         if (!_changingAllowanceWithoutZeroingEnabled && amount != 0) {
             // Have to set allowance to zero (or let it expire) before it can be set to non-zero
-            require(allowance(/* holder = */ msg.sender, spender) == 0, "Must set allowance to zero first");
+            require(allowance(/* holder = */ msg.sender, spender) == 0, "Curr allowance nonzero");
         }
         // Timestamps can be fudged up to 15 seconds by miners, so expirationSec needs to be greater than 15
         require(expirationSec > 15, "expirationSec must be >15");

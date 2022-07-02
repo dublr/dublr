@@ -535,7 +535,7 @@ abstract contract OmniTokenInternal is
             } else {
                 interfaceSupported = false;
             }
-            require(interfaceSupported, "Ext contract doesn't impl reqd fn");
+            require(interfaceSupported, "supportsInterface failed");
         }
         
         {
