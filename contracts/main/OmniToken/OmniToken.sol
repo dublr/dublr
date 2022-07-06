@@ -471,7 +471,7 @@ contract OmniToken is OmniTokenInternal {
         
         // Notify ERC1363 spender, if called from ERC1363 API
         if (_erc1363CallDepth > 0) {
-            call_ERC1363Spender_onApprovalReceived(/* holder = */ msg.sender, spender, allowedAmount, data);
+            call_ERC1363Spender_onApprovalReceived(/* holder = */ holder, spender, allowedAmount, data);
         }
     }
 
