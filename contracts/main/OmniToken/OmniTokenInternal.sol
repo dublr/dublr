@@ -179,16 +179,12 @@ abstract contract OmniTokenInternal is
 
         // ERC20
         registerInterfaceViaERC165(type(IERC20).interfaceId, enable);
-        registerInterfaceViaERC165(type(IERC20).interfaceId ^ type(IERC20Optional).interfaceId, enable);
 
         // ERC20 increase/decrease allowance extension
         registerInterfaceViaERC165(type(IERC20IncreaseDecreaseAllowance).interfaceId, enable);
-        registerInterfaceViaERC165(type(IERC20).interfaceId ^ type(IERC20IncreaseDecreaseAllowance).interfaceId,
-                enable);
                 
         // ERC20 safe approval extension
         registerInterfaceViaERC165(type(IERC20SafeApproval).interfaceId, enable);
-        registerInterfaceViaERC165(type(IERC20).interfaceId ^ type(IERC20SafeApproval).interfaceId, enable);
 
         // Don't register time-limited token allowance extension, because the OmniToken version uses seconds rather
         // than blocks for expiration, but the method type signature is the same
@@ -253,8 +249,6 @@ abstract contract OmniTokenInternal is
         _ERC1363Enabled = enable;
 
         registerInterfaceViaERC165(type(IERC1363).interfaceId, enable);
-        registerInterfaceViaERC165(type(IERC1363).interfaceId ^ type(IERC20).interfaceId ^ type(IERC165).interfaceId,
-                enable);
 
         registerInterfaceViaERC1820("ERC1363Token", enable);
     }
@@ -283,8 +277,6 @@ abstract contract OmniTokenInternal is
         _ERC4524Enabled = enable;
         
         registerInterfaceViaERC165(type(IERC4524).interfaceId, enable);
-        registerInterfaceViaERC165(type(IERC4524).interfaceId ^ type(IERC20).interfaceId ^ type(IERC165).interfaceId,
-                enable);
         
         registerInterfaceViaERC1820("ERC4524Token", enable);
     }
@@ -313,7 +305,6 @@ abstract contract OmniTokenInternal is
         _EIP2612Enabled = enable;
 
         registerInterfaceViaERC165(type(IEIP2612).interfaceId, enable);
-        registerInterfaceViaERC165(type(IEIP2612).interfaceId ^ type(IERC20).interfaceId, enable);
 
         registerInterfaceViaERC1820("ERC2612Permit", enable);
     }
