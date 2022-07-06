@@ -564,7 +564,7 @@ abstract contract OmniTokenInternal is
                 ERC1820_REGISTRY_ADDRESS.call(abi.encodeWithSignature(
                         "setInterfaceImplementer(address,bytes32,address)",
                         /* addr = */ account,
-                        /* interfaceHash = */ keccak256(abi.encodePacked(interfaceName)),
+                        /* interfaceHash = */ keccak256(interfaceName),
                         /* implementer = */ implementer));
         require(success, "setInterfaceImplementer failed");
     }
