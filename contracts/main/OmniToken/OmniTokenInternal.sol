@@ -492,7 +492,7 @@ abstract contract OmniTokenInternal is
     function callERC165Contract(address contractAddr, bytes memory abiEncoding, string memory errMsg)
             internal extCaller returns (bool success) {
         // Get function selector from the ABI encoding
-        require(abiEncoding.length >= 4);  // Sanity check
+        require(abiEncoding.length >= 4, "abiEnc");  // Sanity check
         bytes4 functionSelector;
         assembly {
             // functionSelector is first 4 bytes after 32-byte length field
@@ -524,8 +524,9 @@ abstract contract OmniTokenInternal is
         }
         
         {
-            // callContractFunction below will only revert on failure if errMsg is not empty
-            require(bytes(errMsg).length > 0);
+            // callContractFunction below will only revert on failure if errMsg is not empty,
+            // therefore caller must provide errMsg.
+            require(bytes(errMsg).length > 0, "errMsg");
             
             // Call function with the requested functionSelector in the contract at contractAddr,
             // using the given ABI encoding of the functionSelector and the arguments
