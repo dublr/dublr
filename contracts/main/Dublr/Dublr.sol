@@ -661,17 +661,8 @@ contract Dublr is DublrInternal, IDublrDEX {
         }
         
         // Send any remaining ETH (trading fees + minting fees) to owner
-        uint256 feesToSendToOwnerETHWEI = msgValueETHWEI - totalSentToSellersAndBuyerETHWEI;
-        if (feesToSendToOwnerETHWEI > 0) {
-            // Send fees to owner
-            sendETH(_owner, feesToSendToOwnerETHWEI, "Can't pay owner");
-        }
-        
-        // The previous sendETH call should leave the contract's ETH balance at zero.
-        // However there are a few (unlikely) ways that the Dublr contract could gain an additional ETH balance:
-        // https://ethereum.stackexchange.com/a/63988/82179
-        // If this happens for some reason, send ETH over to the owner, so that the ETH is not lost.
         if (address(this).balance > 0) {
+            // Send fees to owner
             sendETH(_owner, address(this).balance, "Can't pay owner");
         }
     }
