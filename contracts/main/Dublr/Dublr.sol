@@ -177,7 +177,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // Peek at the order in the heap without removing it
         Order storage order = orderBook[heapIdx];
-        require(order.seller == msg.sender, "Not seller");  // Sanity check
+        assert(order.seller == msg.sender);  // Sanity check
         
         return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
     }
@@ -197,7 +197,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Remove the order from the heap
         Order memory order = heapRemove(heapIdx);
-        require(order.seller == msg.sender, "Not seller");  // Sanity check
+        assert(order.seller == msg.sender);  // Sanity check
 
         // Add the order amount of the canceled sell order back into the seller's balance
         balanceOf[order.seller] += order.amountDUBLRWEI;
@@ -393,8 +393,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             public payable override(IDublrDEX) stateUpdater {
         address buyer = msg.sender;
 
-        //require(allowBuying || allowMinting, "Bad arg");
-
         // Get the ETH value sent to this function in units of ETH wei
         require(msg.value > 0, "Zero payment");
         uint256 buyOrderRemainingETHWEI = msg.value;
@@ -409,7 +407,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Amount of ETH to refund to buyer, and amounts to send to sellers at end of transaction
         uint256 amountToRefundToBuyerETHWEI = 0;
-        require(amountToSendToSellers.length == 0, "Internal error");  // Sanity check
+        assert(amountToSendToSellers.length == 0);  // Sanity check
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
