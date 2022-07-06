@@ -325,21 +325,24 @@ abstract contract DublrInternal is OmniToken {
         return a < b ? a : b;
     }
     
+    /** The fixed point multiplier for priceETHPerDUBLR_x1e9 prices (i.e. 1e9). */
+    uint256 internal constant _1e9 = 1e9;
+    
     /** @dev Convert DUBLR to ETH. */
     function dublrToEthRoundUpClamped(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9, uint256 maxEthAmt)
             internal pure returns (uint256) {
-        uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + 1e9 - 1) / 1e9;
+        uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + _1e9 - 1) / _1e9;
         return ethAmt < maxEthAmt ? ethAmt : maxEthAmt;
     }
     
     /** @dev Convert DUBLR to ETH. */
     function dublrToEthRoundDown(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9) internal pure returns (uint256) {
-        return dublrAmt * priceETHPerDUBLR_x1e9 / 1e9;
+        return dublrAmt * priceETHPerDUBLR_x1e9 / _1e9;
     }
     
     /** @dev Convert ETH to DUBLR. */
     function ethToDublrRoundDown(uint256 ethAmt, uint256 priceETHPerDUBLR_x1e9) internal pure returns (uint256) {
-        return ethAmt * 1e9 / priceETHPerDUBLR_x1e9;
+        return ethAmt * _1e9 / priceETHPerDUBLR_x1e9;
     }
 }
 
