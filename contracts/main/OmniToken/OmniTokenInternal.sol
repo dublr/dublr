@@ -36,6 +36,9 @@ abstract contract OmniTokenInternal is
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
                       IERC777, IERC1363, IERC4524, IEIP2612 {
 
+    /** @dev Error on notification hook failure. */
+    error NotificationHookFailure(address addr, string functionName, string revertMsg, bytes revertData);
+
     /** @dev Creator/owner of the contract. */
     address immutable internal _owner;
 
@@ -438,11 +441,13 @@ abstract contract OmniTokenInternal is
      */
     function requireContractToSupportInterface(address contractAddr, bytes4 interfaceId, string memory errMsgOnFail)
             internal extCaller {
+        bool supported;
         try IERC165(contractAddr).supportsInterface(interfaceId) returns (bool result) {
-            require(result, errMsgOnFail);
+            supported = result;
         } catch {
-            revert(errMsgOnFail);
+            supported = false;
         }
+        require(supported, errMsgOnFail);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -529,11 +534,10 @@ abstract contract OmniTokenInternal is
             try IERC777Recipient(recipientImpl)
                     .tokensReceived(operator, sender, recipient, amount, data, operatorData) {
                 // Success (fall through)
-            } catch Error(string memory reason) {
-                // Prepend to error reason, to give context
-                revert(string(abi.encodePacked("tokensReceived failed", ": ", reason)));
-            } catch {
-                revert("tokensReceived failed");
+            } catch Error(string memory revertMsg) {
+                revert NotificationHookFailure(recipientImpl, "tokensReceived", revertMsg, "");
+            } catch (bytes memory revertData) {
+                revert NotificationHookFailure(recipientImpl, "tokensReceived", "", revertData);
             }
         } else {
             // The ERC777 spec specifies that sending to a non-ERC777 contract must revert, while sending to a
@@ -567,11 +571,10 @@ abstract contract OmniTokenInternal is
         try IERC1363Spender(spender).onApprovalReceived(holder, amount, data) returns (bytes4 retVal) {
             // Check return value
             require(retVal == type(IERC1363Spender).interfaceId, "Not ERC1363 spender");
-        } catch Error(string memory reason) {
-            // Prepend to error reason, to give context
-            revert(string(abi.encodePacked("onApprovalReceived failed", ": ", reason)));
-        } catch {
-            revert("onApprovalReceived failed");
+        } catch Error(string memory revertMsg) {
+            revert NotificationHookFailure(spender, "onApprovalReceived", revertMsg, "");
+        } catch (bytes memory revertData) {
+            revert NotificationHookFailure(spender, "onApprovalReceived", "", revertData);
         }
         return true;
     }
@@ -596,11 +599,10 @@ abstract contract OmniTokenInternal is
         try IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data) returns (bytes4 retVal) {
             // Check return value
             require(retVal == type(IERC1363Receiver).interfaceId, "Not ERC1363 recipient");
-        } catch Error(string memory reason) {
-            // Prepend to error reason, to give context
-            revert(string(abi.encodePacked("onTransferReceived failed", ": ", reason)));
-        } catch {
-            revert("onTransferReceived failed");
+        } catch Error(string memory revertMsg) {
+            revert NotificationHookFailure(recipient, "onTransferReceived", revertMsg, "");
+        } catch (bytes memory revertData) {
+            revert NotificationHookFailure(recipient, "onTransferReceived", "", revertData);
         }
         return true;
     }
@@ -626,11 +628,10 @@ abstract contract OmniTokenInternal is
             try IERC4524Recipient(recipient).onERC20Received(operator, sender, amount, data) returns (bytes4 retVal) {
                 // Check return value
                 require(retVal == type(IERC4524Recipient).interfaceId, "Not ERC4524 recipient");
-            } catch Error(string memory reason) {
-                // Prepend to error reason, to give context
-                revert(string(abi.encodePacked("onTransferReceived failed", ": ", reason)));
-            } catch {
-                revert("onERC20Received failed");
+            } catch Error(string memory revertMsg) {
+                revert NotificationHookFailure(recipient, "onERC20Received", revertMsg, "");
+            } catch (bytes memory revertData) {
+                revert NotificationHookFailure(recipient, "onERC20Received", "", revertData);
             }
         }
         // Either recipient is an EOA, or receiver's onERC20Received function was successfully called

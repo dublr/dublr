@@ -261,8 +261,12 @@ describe("OmniToken", () => {
     const contractERC777Recipient = await deployContract(wallet[1], ERC777Recipient, []);
     expect(await contractERC777Recipient.callCount()).to.equal(0);
     await contractERC777Recipient.testReentry(true);
-    await expect(contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []))
-            .to.be.revertedWith("tokensReceived failed: Reentrance denied");
+    try {
+      await contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
+      expect(true).to.equal(false);  // Fail if call succeeds
+    } catch (error) {
+      expect(error.message).to.contain("Reentrance denied");
+    }
   });
 
   it("ERC777: burn", async () => {
