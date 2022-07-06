@@ -102,7 +102,7 @@ describe("OmniToken", () => {
     expect(await contract0["allowance(address,address)"](wallet[0].address, wallet[1].address))
             .to.equal(100);
     await expect(contract0["approve(address,uint256)"](wallet[1].address, 150))
-            .to.be.revertedWith("Must set allowance to zero first");
+            .to.be.revertedWith("Curr allowance nonzero");
     const contract1 = await contract0.connect(wallet[1]);
     expect(await contract1.allowance(wallet[0].address, wallet[1].address)).to.equal(100);
     await contract1.transferFrom(wallet[0].address, wallet[1].address, 100);
@@ -493,7 +493,7 @@ describe("Dublr", () => {
     await contract0._owner_enableBuying(false);
     await contract0._owner_enableMinting(false);
     await expect(contract0["buy()"]({value: initialMintPriceETHPerDUBLR_x1e9 * 10}))
-            .to.be.revertedWith("Out of sell orders, and minting is disabled");
+            .to.be.revertedWith("Out of sell orders; minting disabled");
     const contract1 = contract0.connect(wallet[1]);
     await expect(contract1._owner_enableBuying(true)).to.be.revertedWith("Not owner");
     await expect(contract1._owner_enableMinting(true)).to.be.revertedWith("Not owner");
