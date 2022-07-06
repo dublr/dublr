@@ -302,8 +302,10 @@ abstract contract DublrInternal is OmniToken {
             // then send will revert. For contracts compiled on older versions of solidity, zero-length
             // payloads will simply trigger the `fallback()` function -- there is no `receive()` function.
             // `call` automatically succeeds if the recipient is an EOA.
-            (success, returnData) = callContractFunction(
-                    recipient, amountETH, /* abiEncoding = */ "", errorMessageOnFail);
+            (success, returnData) = recipient.call{value: amountETH}("");
+            if (!success && bytes(errorMessageOnFail).length > 0) {
+                revert(errorMessageOnFail);
+            }
         } else {
             return (true, "");
         }

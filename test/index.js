@@ -317,7 +317,7 @@ describe("OmniToken", () => {
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(900);
     await contractERC1363Receiver.enable(false);
     await expect(contract0["transferAndCall(address,uint256)"](contractERC1363Receiver.address, 100))
-            .to.be.revertedWith("Wrong ext fn ret val");
+            .to.be.revertedWith("Not ERC1363 recipient");
   });
 
   it("ERC1363: transferFromAndCall", async () => {
@@ -347,7 +347,7 @@ describe("OmniToken", () => {
     await expect(contract1["transferFromAndCall(address,address,uint256)"]
             (wallet[0].address, wallet[2].address, 100))
                     // Can't send to EOA with ERC1363
-                    .to.be.revertedWith("Addr is not a contract");
+                    .to.be.revertedWith("Not ERC1363 recipient");
   });
   
   it("ERC1363: approveFromAndCall", async () => {
@@ -373,7 +373,7 @@ describe("OmniToken", () => {
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(900);
     await contractERC4524Recipient.enable(false);
     await expect(contract0["safeTransfer(address,uint256)"](contractERC4524Recipient.address, 100))
-            .to.be.revertedWith("Wrong ext fn ret val");
+            .to.be.revertedWith("Not ERC4524 recipient");
   });
 
   it("ERC4524: safeTransferFrom", async () => {

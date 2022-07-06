@@ -8,7 +8,7 @@
 
 pragma solidity 0.8.15;
 
-import '../main/OmniToken/interfaces/IERC165.sol';
+import './IERC165.sol';
 
 /*
  * @dev The ERC-165 identifier for this interface is 0x7b04a2d0.

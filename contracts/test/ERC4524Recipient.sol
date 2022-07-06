@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import './IERC4524Recipient.sol';
+import '../main/OmniToken/interfaces/IERC4524Recipient.sol';
 
 /**
  * @title ERC4524Recipient

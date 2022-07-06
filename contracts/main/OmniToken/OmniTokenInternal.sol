@@ -9,6 +9,7 @@
 pragma solidity 0.8.15;
 
 import "./interfaces/IERC165.sol";
+import "./interfaces/IERC1820Registry.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IERC20Optional.sol";
 import "./interfaces/IERC20Burn.sol";
@@ -16,8 +17,13 @@ import "./interfaces/IERC20SafeApproval.sol";
 import "./interfaces/IERC20IncreaseDecreaseAllowance.sol";
 import "./interfaces/IERC20TimeLimitedTokenAllowances.sol";
 import "./interfaces/IERC777.sol";
+import "./interfaces/IERC777Sender.sol";
+import "./interfaces/IERC777Recipient.sol";
 import "./interfaces/IERC1363.sol";
+import "./interfaces/IERC1363Spender.sol";
+import "./interfaces/IERC1363Receiver.sol";
 import "./interfaces/IERC4524.sol";
+import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
 
 /**
@@ -62,7 +68,7 @@ abstract contract OmniTokenInternal is
                 block.chainid,
                 address(this)));
 
-        // There must be an ERC1820 registry deployed on the network
+        // There must be an ERC1820 registry deployed on the network for ERC777
         require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
 
         // Enable and register interfaces
@@ -400,60 +406,6 @@ abstract contract OmniTokenInternal is
         return account != address(0) && account.code.length > 0;
     }
 
-    /**
-     * @dev Call a function in another contract, reverting with the other contract's revert message if the call fails.
-     *
-     * @param contractAddress The contract to call the function on.
-     * @param valueETH The amount of ETH to send with the function call, or 0 for none.
-     * @param abiEncoding The ABI encoding of the function call.
-     * @param errorMessageOnFailure The error message to revert with. If the contract function reverts with
-     *              its own message, it is appended to the end of `errorMessageOnFailure`. If empty, do not revert
-     *              if the call does not succeed, but instead just return whether the call succeeded.
-     * @return success `true` if the call was successful. `false` if `errorMessageOnFailure` was empty and the call
-     *              failed.
-     * @return returnData the return data from a successful call.
-     */
-    function callContractFunction(address contractAddress, uint256 valueETH, bytes memory abiEncoding,
-            string memory errorMessageOnFailure) internal extCaller
-            returns (bool success, bytes memory returnData) {
-        
-        // `.call` will succeed if contract doesn't exist:
-        // https://docs.soliditylang.org/en/develop/control-structures.html
-        // (URL continued => ) #error-handling-assert-require-revert-and-exceptions
-        // Therefore require that contractAddress is a contract, unless the payload is empty
-        // (an empty payload is used to send ETH to an address, so it doesn't have to be a contract)
-        require(abiEncoding.length == 0 || isContract(contractAddress), "Addr is not a contract");
-        
-        (success, returnData) = contractAddress.call{value: valueETH}(abiEncoding);
-        if (!success && bytes(errorMessageOnFailure).length > 0) {
-            // Minimum size of return data for a non-empty revert message
-            if (returnData.length > 4 + 32 + 32) {
-                // If there is a non-empty revert message in the return data, revert with the same message.
-                // The return data of a reverted call includes the following in ABI encoding format:
-                // - bytes4: function selector with value: 0x08c379a0 == bytes4(keccak256("Error(string)"))
-                // - uint256: offset of string parameter (should be 0x20)
-                // - uint256: string length (should be 1 or more for non-empty revert message)
-                // - string: value of revert message
-                bytes4 selector;
-                uint256 offset;
-                string memory revertMsg;
-                uint256 len;
-                assembly {
-                    selector := mload(add(returnData, 32))  // returnData.length is first 32 bytes
-                    offset := mload(add(returnData, 36))
-                    revertMsg := add(returnData, 68)        // revertMsg start addr, starting with revertMsg.length
-                    len := mload(revertMsg)
-                }
-                if (selector == 0x08c379a0 && offset == 0x20 && len > 0) {
-                    // Concatenate the error message prefix and the revert message, then revert
-                    revert(string(abi.encodePacked(errorMessageOnFailure, ": ", revertMsg)));
-                }
-            }
-            // Otherwise revert with just the provided error message
-            revert(errorMessageOnFailure);
-        }
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     // ERC165 support for testing whether a given interface is supported
 
@@ -482,75 +434,19 @@ abstract contract OmniTokenInternal is
     }
 
     /**
-     * @dev Ensure another contract supports a given interface (reverts transaction if not).
+     * @dev Check that a contract supports a given interface (declared via ERC165), reverting if not.
      *
      * @param contractAddr The contract address.
-     * @param abiEncoding The ABI encoding of a function call to the contract address.
-     * @param errMsg The string to revert with if the function cannot be called.
-     * @return success `true` unless reverting.
+     * @param interfaceId The interface id.
+     * @param errMsgOnFail The error message to revert with, if the contract does not support the interface.
      */
-    function callERC165Contract(address contractAddr, bytes memory abiEncoding, string memory errMsg)
-            internal extCaller returns (bool success) {
-        // Get function selector from the ABI encoding
-        require(abiEncoding.length >= 4, "abiEnc");  // Sanity check
-        bytes4 functionSelector;
-        assembly {
-            // functionSelector is first 4 bytes after 32-byte length field
-            functionSelector := mload(add(abiEncoding, 32))
+    function requireContractToSupportInterface(address contractAddr, bytes4 interfaceId, string memory errMsgOnFail)
+            internal extCaller {
+        try IERC165(contractAddr).supportsInterface(interfaceId) returns (bool result) {
+            require(result, errMsgOnFail);
+        } catch {
+            revert(errMsgOnFail);
         }
-        
-        {
-            // Check whether contractAddr implements the required interface (consisting of the
-            // single function with the selector `functionSelector`), using ERC165.
-            // Technically ERC165 requires two preliminary calls to supportsInterface, with param
-            // 0x01ffc9a7 (returning true), then 0xffffffff (returning false), then a third call
-            // to query whether the desired function is supported. We skip the first and second
-            // calls to save gas, at the cost of strictness.
-            (, bytes memory returnData) = callContractFunction(
-                    contractAddr,
-                    /* valueETH = */ 0,
-                    abi.encodeWithSignature("supportsInterface(bytes4)", functionSelector),
-                    "supportsInterface failed");
-            bool interfaceSupported;
-            if (returnData.length >= 1) {
-                assembly {
-                    // Return data (bool) starts after bytes length field
-                    interfaceSupported := mload(add(returnData, 32))
-                }
-            } else {
-                interfaceSupported = false;
-            }
-            require(interfaceSupported, "supportsInterface failed");
-        }
-        
-        {
-            // callContractFunction below will only revert on failure if errMsg is not empty,
-            // therefore caller must provide errMsg.
-            require(bytes(errMsg).length > 0, "errMsg");
-            
-            // Call function with the requested functionSelector in the contract at contractAddr,
-            // using the given ABI encoding of the functionSelector and the arguments
-            (, bytes memory returnData) = callContractFunction(
-                    contractAddr,
-                    /* valueETH = */ 0,
-                    abiEncoding,
-                    errMsg);
-            // Decode the return data
-            bytes4 returnedBytes4;
-            if (returnData.length >= 4) {
-                assembly {
-                    // Return data starts after bytes length field
-                    returnedBytes4 := mload(add(returnData, 32))
-                }
-            } else {
-                returnedBytes4 = 0;
-            }
-            // Require the implemented interface function to return its own selector (this is used by
-            // ERC1363 and ERC4524 for spender/receiver interfaces).
-            require(returnedBytes4 == functionSelector, "Wrong ext fn ret val");
-        }
-        
-        return true;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -559,24 +455,17 @@ abstract contract OmniTokenInternal is
     /** @dev The ERC1820 registry address. */
     address internal constant ERC1820_REGISTRY_ADDRESS = address(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
 
-    /** @dev Register an interface in the ERC1820 registry. */
-    function registerInterfaceViaERC1820(address account, string memory interfaceName, address implementer) internal {
-        (bool success,) =
-                ERC1820_REGISTRY_ADDRESS.call(abi.encodeWithSignature(
-                        "setInterfaceImplementer(address,bytes32,address)",
-                        /* account = */ account,
-                        /* interfaceHash = */ keccak256(bytes(interfaceName)),
-                        /* implementer = */ implementer));
-        require(success, "setInterfaceImplementer failed");
-    }
-
     /**
      * @dev Register or unregister an interface in the ERC1820 registry, with this address as the account
      * and implementer.
      */
     function registerInterfaceViaERC1820(string memory interfaceName, bool enable) internal {
-        registerInterfaceViaERC1820(address(0) /* equivalent to address(this) for `account` arg of `setInterfaceImplementer` */,
-                interfaceName, enable ? address(this) : address(0));
+        IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
+                .setInterfaceImplementer(
+                        // address(0) is equivalent to address(this) for first arg of `setInterfaceImplementer`
+                        /* account = */ address(0),
+                        /* interfaceHash = */ keccak256(bytes(interfaceName)),
+                        /* implementer = */ enable ? address(this) : address(0));
     }
 
     /**
@@ -590,28 +479,8 @@ abstract contract OmniTokenInternal is
      */
     function lookUpInterfaceViaERC1820(address addrToQuery, string memory interfaceName)
                 internal view returns(address interfaceAddr) {
-        (bool success, bytes memory returnBytes) =
-                // Use staticcall since getInterfaceImplementer is a view function
-                ERC1820_REGISTRY_ADDRESS.staticcall(abi.encodeWithSignature(
-                        "getInterfaceImplementer(address,bytes32)",
-                        addrToQuery, keccak256(bytes(interfaceName))));
-        require(success, "No ERC1820 registry");
-        
-        // If there is no registered implementer, the returned bytes will have zero length.
-        // If there is a registered implementer, the returned bytes will have length 32,
-        // with the 160-bit implementer address ABI-encoded into one 256-bit word.
-        uint256 lenBytes;
-        assembly { lenBytes := mload(returnBytes) }
-        if (lenBytes == 32) {
-            // There is a registered implementer
-            address implementerAddr;
-            assembly {
-                implementerAddr := mload(add(returnBytes, 32))
-            }
-            return implementerAddr;
-        } else {
-            return address(0);
-        }
+        return IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
+                .getInterfaceImplementer(addrToQuery, keccak256(bytes(interfaceName)));
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -632,12 +501,16 @@ abstract contract OmniTokenInternal is
             bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
         address senderImplementation = lookUpInterfaceViaERC1820(sender, "ERC777TokensSender");
         if (isContract(senderImplementation)) {
-            (success,) = senderImplementation.call(
-                    abi.encodeWithSignature(
-                            "tokensToSend(address,address,address,uint256,bytes,bytes)",
-                            operator, sender, recipient, amount, data, operatorData));
+            try IERC777Sender(senderImplementation)
+                    .tokensToSend(operator, sender, recipient, amount, data, operatorData) {
+                // Success (fall through)
+            } catch {
+                // Don't revert if sender couldn't be called, just return false (currently ignored by caller)
+                // (it is optional for sender to implement ERC777 sender interface)
+                return false;
+            }
         }
-        // Don't fail if sender couldn't be called (it is optional for sender to implement ERC777 sender interface)
+        return true;
     }
 
     /**
@@ -657,13 +530,15 @@ abstract contract OmniTokenInternal is
             bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
         address recipientImpl = lookUpInterfaceViaERC1820(recipient, "ERC777TokensRecipient");
         if (recipientImpl != address(0)) {
-            callContractFunction(
-                    recipientImpl,
-                    /* valueETH = */ 0,
-                    abi.encodeWithSignature(
-                            "tokensReceived(address,address,address,uint256,bytes,bytes)",
-                            operator, sender, recipient, amount, data, operatorData),
-                    "tokensReceived failed");
+            try IERC777Recipient(recipientImpl)
+                    .tokensReceived(operator, sender, recipient, amount, data, operatorData) {
+                // Success (fall through)
+            } catch Error(string memory reason) {
+                // Prepend to error reason, to give context
+                revert(string(abi.encodePacked("tokensReceived failed", ": ", reason)));
+            } catch {
+                revert("tokensReceived failed");
+            }
         } else {
             // The ERC777 spec specifies that sending to a non-ERC777 contract must revert, while sending to a
             // non-contract address (an EOA) must silently continue.
@@ -690,11 +565,19 @@ abstract contract OmniTokenInternal is
     function call_ERC1363Spender_onApprovalReceived(
             address holder, address spender, uint256 amount, bytes memory data)
             internal extCaller returns (bool success) {
-        // Recipient must declare it implements ERC1363 spender interface via ERC165
-        return callERC165Contract(
-                spender,
-                abi.encodeWithSignature("onApprovalReceived(address,uint256,bytes)", holder, amount, data),
-                "onApprovalReceived failed");
+        // `spender` must declare it implements ERC1363 spender interface via ERC165
+        require(isContract(spender), "Not ERC1363 spender");
+        requireContractToSupportInterface(spender, type(IERC1363Spender).interfaceId, "Not ERC1363 spender");
+        try IERC1363Spender(spender).onApprovalReceived(holder, amount, data) returns (bytes4 retVal) {
+            // Check return value
+            require(retVal == type(IERC1363Spender).interfaceId, "Not ERC1363 spender");
+        } catch Error(string memory reason) {
+            // Prepend to error reason, to give context
+            revert(string(abi.encodePacked("onApprovalReceived failed", ": ", reason)));
+        } catch {
+            revert("onApprovalReceived failed");
+        }
+        return true;
     }
 
     /**
@@ -711,12 +594,19 @@ abstract contract OmniTokenInternal is
     function call_ERC1363Receiver_onTransferReceived(
             address operator, address sender, address recipient, uint256 amount, bytes memory data)
             internal extCaller returns (bool success) {
-        // Recipient must declare it implements ERC1363 receiver interface via ERC165
-        return callERC165Contract(
-                recipient,
-                abi.encodeWithSignature("onTransferReceived(address,address,uint256,bytes)",
-                        operator, sender, amount, data),
-                "onTransferReceived failed");
+        // `recipient` must declare it implements ERC1363 recipient interface via ERC165
+        require(isContract(recipient), "Not ERC1363 recipient");
+        requireContractToSupportInterface(recipient, type(IERC1363Receiver).interfaceId, "Not ERC1363 recipient");
+        try IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data) returns (bytes4 retVal) {
+            // Check return value
+            require(retVal == type(IERC1363Receiver).interfaceId, "Not ERC1363 recipient");
+        } catch Error(string memory reason) {
+            // Prepend to error reason, to give context
+            revert(string(abi.encodePacked("onTransferReceived failed", ": ", reason)));
+        } catch {
+            revert("onTransferReceived failed");
+        }
+        return true;
     }
 
     /**
@@ -735,11 +625,17 @@ abstract contract OmniTokenInternal is
             internal extCaller returns (bool success) {
         // Sending to an EOA always succeeds, by falling through to the return statement
         if (isContract(recipient)) {
-            // Recipient must declare it implements ERC4524 receiver interface via ERC165
-            callERC165Contract(recipient,
-                    abi.encodeWithSignature("onERC20Received(address,address,uint256,bytes)",
-                            operator, sender, amount, data),
-                    "onERC20Received failed");
+            // `recipient` must declare it implements ERC4524 recipient interface via ERC165
+            requireContractToSupportInterface(recipient, type(IERC4524Recipient).interfaceId, "Not ERC4524 recipient");
+            try IERC4524Recipient(recipient).onERC20Received(operator, sender, amount, data) returns (bytes4 retVal) {
+                // Check return value
+                require(retVal == type(IERC4524Recipient).interfaceId, "Not ERC4524 recipient");
+            } catch Error(string memory reason) {
+                // Prepend to error reason, to give context
+                revert(string(abi.encodePacked("onTransferReceived failed", ": ", reason)));
+            } catch {
+                revert("onERC20Received failed");
+            }
         }
         // Either recipient is an EOA, or receiver's onERC20Received function was successfully called
         // and the function returned the correct value.

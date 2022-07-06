@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.15;
 
-import "./IERC1363Receiver.sol";
+import "../main/OmniToken/interfaces/IERC1363Receiver.sol";
 
 /**
  * @title ERC1363Receiver interface

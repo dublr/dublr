@@ -8,7 +8,7 @@
 
 pragma solidity 0.8.15;
 
-import "./IERC1363Spender.sol";
+import "../main/OmniToken/interfaces/IERC1363Spender.sol";
 import "../main/Dublr/Dublr.sol";
 
 contract ERC1363Spender is IERC1363Spender {
