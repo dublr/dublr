@@ -31,10 +31,10 @@ abstract contract OmniTokenInternal is
                       IERC777, IERC1363, IERC4524, IEIP2612 {
 
     /** @dev Creator/owner of the contract. */
-    address internal _owner;
+    address immutable internal _owner;
 
     /** @notice EIP712 domain separator for EIP2612 permits. */
-    bytes32 public override(IEIP2612) DOMAIN_SEPARATOR;
+    bytes32 immutable public override(IEIP2612) DOMAIN_SEPARATOR;
 
     /**
      * @dev Constructor.
