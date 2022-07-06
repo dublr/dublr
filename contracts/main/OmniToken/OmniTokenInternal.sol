@@ -563,7 +563,7 @@ abstract contract OmniTokenInternal is
         (bool success,) =
                 ERC1820_REGISTRY_ADDRESS.call(abi.encodeWithSignature(
                         "setInterfaceImplementer(address,bytes32,address)",
-                        /* addr = */ account,
+                        /* account = */ account,
                         /* interfaceHash = */ keccak256(bytes(interfaceName)),
                         /* implementer = */ implementer));
         require(success, "setInterfaceImplementer failed");
@@ -574,7 +574,8 @@ abstract contract OmniTokenInternal is
      * and implementer.
      */
     function registerInterfaceViaERC1820(string memory interfaceName, bool enable) internal {
-        registerInterfaceViaERC1820(address(this), interfaceName, enable ? address(this) : address(0));
+        registerInterfaceViaERC1820(address(0) /* equivalent to address(this) for `account` arg of `setInterfaceImplementer` */,
+                interfaceName, enable ? address(this) : address(0));
     }
 
     /**
