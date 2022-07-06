@@ -651,6 +651,10 @@ abstract contract OmniTokenInternal is
     // -----------------------------------------------------------------------------------------------------------------
     // Permitting
     
+    /** @dev The EIP2612 permit function typehash. */
+    bytes32 internal constant EIP2612_PERMIT_TYPEHASH =
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
     /**
      * @dev Check permit certificate. Reverts if certificate is not valid.
      *

@@ -1321,10 +1321,7 @@ contract OmniToken is OmniTokenInternal {
         
         // Check whether permit is valid (reverts if not)
         checkPermit(deadline,
-                keccak256(abi.encode(
-                    // keccak256("Permit(address holder,address spender,uint256 value,uint256 nonce,uint256 deadline)")
-                    0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9,
-                    holder, spender, amount, nonce, deadline)),
+                keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonce, deadline)),
                 v, r, s, /* requiredSigner = */ holder);
                 
         // Approve amount allowed in the permit
