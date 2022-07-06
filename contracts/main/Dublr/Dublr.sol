@@ -30,7 +30,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      */
     constructor(uint256 initialMintPrice_ETHPerDUBLR_x1e9, uint256 initialMintAmountDUBLR)
             OmniToken("Dublr", "DUBLR", "1", new address[](0), initialMintAmountDUBLR) {
-        require(initialMintPrice_ETHPerDUBLR_x1e9 > 0 && initialMintAmountDUBLR > 0);
+        require(initialMintPrice_ETHPerDUBLR_x1e9 > 0, "Zero price");
         
         // Record timestamp and initial mint price at contract creation time
         initialMintPriceETHPerDUBLR_x1e9 = initialMintPrice_ETHPerDUBLR_x1e9;
