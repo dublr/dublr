@@ -564,7 +564,7 @@ abstract contract OmniTokenInternal is
                 ERC1820_REGISTRY_ADDRESS.call(abi.encodeWithSignature(
                         "setInterfaceImplementer(address,bytes32,address)",
                         /* addr = */ account,
-                        /* interfaceHash = */ keccak256(interfaceName),
+                        /* interfaceHash = */ keccak256(bytes(interfaceName)),
                         /* implementer = */ implementer));
         require(success, "setInterfaceImplementer failed");
     }
@@ -581,18 +581,18 @@ abstract contract OmniTokenInternal is
      * @dev Look up an interface in the ERC1820 registry.
      *
      * @param addrToQuery Address being queried for the implementer of an interface.
-     * @param interfaceHash keccak256 hash of the name of the interface as a string.
+     * @param interfaceName the name of the interface as a string.
      * @return interfaceAddr The address of the contract which implements the interface `hash` for `addr`, 
      *         or `address(0)` if `addr` did not register an implementer for this interface (or if the
      *         registry could not be called).
      */
-    function lookUpInterfaceViaERC1820(address addrToQuery, bytes32 interfaceHash)
+    function lookUpInterfaceViaERC1820(address addrToQuery, string memory interfaceName)
                 internal view returns(address interfaceAddr) {
         (bool success, bytes memory returnBytes) =
                 // Use staticcall since getInterfaceImplementer is a view function
                 ERC1820_REGISTRY_ADDRESS.staticcall(abi.encodeWithSignature(
                         "getInterfaceImplementer(address,bytes32)",
-                        addrToQuery, interfaceHash));
+                        addrToQuery, keccak256(bytes(interfaceName))));
         require(success, "No ERC1820 registry");
         
         // If there is no registered implementer, the returned bytes will have zero length.
@@ -628,10 +628,7 @@ abstract contract OmniTokenInternal is
     function call_ERC777TokensSender_tokensToSend(
             address operator, address sender, address recipient, uint256 amount,
             bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
-        address senderImplementation = lookUpInterfaceViaERC1820(
-                sender,
-                // keccak256(abi.encodePacked("ERC777TokensSender"))
-                0x29ddb589b1fb5fc7cf394961c1adf5f8c6454761adf795e67fe149f658abe895);
+        address senderImplementation = lookUpInterfaceViaERC1820(sender, "ERC777TokensSender");
         if (isContract(senderImplementation)) {
             (success,) = senderImplementation.call(
                     abi.encodeWithSignature(
@@ -656,10 +653,7 @@ abstract contract OmniTokenInternal is
     function call_ERC777TokensRecipient_tokensReceived(
             address operator, address sender, address recipient, uint256 amount,
             bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
-        address recipientImpl = lookUpInterfaceViaERC1820(
-                recipient,
-                // keccak256(abi.encodePacked("ERC777TokensRecipient"))
-                0xb281fc8c12954d22544db45de3159a39272895b169a852b314f9cc762e44c53b);
+        address recipientImpl = lookUpInterfaceViaERC1820(recipient, "ERC777TokensRecipient");
         if (recipientImpl != address(0)) {
             callContractFunction(
                     recipientImpl,
