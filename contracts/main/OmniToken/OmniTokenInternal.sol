@@ -33,9 +33,6 @@ abstract contract OmniTokenInternal is
     /** @dev Creator/owner of the contract. */
     address internal _owner;
 
-    /** @dev The address to which the contract is deployed. */
-    address internal _contractAddr;
-
     /** @notice EIP712 domain separator for EIP2612 permits. */
     bytes32 public override(IEIP2612) DOMAIN_SEPARATOR;
 
@@ -49,9 +46,6 @@ abstract contract OmniTokenInternal is
     constructor(string memory tokenName, string memory tokenSymbol, string memory tokenVersion) {
         // Remember creator of contract as owner
         _owner = msg.sender;
-        // Remember address contract was deployed to originally (to prevent delegate calls to this contract
-        // in `stateUpdater` functions).
-        _contractAddr = address(this);
 
         name = tokenName;
         symbol = tokenSymbol;
@@ -116,22 +110,13 @@ abstract contract OmniTokenInternal is
     uint256 private _extCallerDeniedDepth;
 
     /**
-     * @dev Reentrancy and delegate call protection for functions that modify account state:
-     * 
-     * 1. Disallows a state-modifying function (stateUpdater) from being called deeper in the callstack than a
-     * function that calls an external contract (modified by `extCaller`).
-     *
-     * 2. Prevents other contracts from making delegate calls into the state-updating functions in this contract
-     * (to protect a nefarious contract from using this contract to modify another contract, and to prevent a
-     * nefarious contract from tricking this contract into emitting events that don't correspond to its actual
-     * state changes, which could deceive a service that is watching the events output by this contract).
+     * @dev Reentrancy protection for functions that modify account state. Disallows a state-modifying
+     * function (stateUpdater) from being called deeper in the callstack than a function that calls an
+     * external contract (modified by `extCaller`).
      */
     modifier stateUpdater() {
         // Prevent reentrance
         require(_extCallerDepth == 0, "Reentrance denied");
-        // Prevent delegate calls into this contract.
-        // See: https://github.com/Uniswap/v3-core/blob/main/contracts/NoDelegateCall.sol
-        require(address(this) == _contractAddr, "Delegate calls denied");
         _;
     }
 
