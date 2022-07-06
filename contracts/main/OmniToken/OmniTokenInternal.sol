@@ -42,8 +42,8 @@ abstract contract OmniTokenInternal is
     /** @dev Creator/owner of the contract. */
     address immutable internal _owner;
 
-    /** @notice EIP712 domain separator for EIP2612 permits. */
-    bytes32 immutable public override(IEIP2612) DOMAIN_SEPARATOR;
+    /** @dev EIP712/EIP2612 constant domain separator fields. */
+    bytes32[] private domainSepFields;
 
     /**
      * @dev Constructor.
@@ -60,16 +60,11 @@ abstract contract OmniTokenInternal is
         symbol = tokenSymbol;
         version = tokenVersion;
 
-        // Initialize EIP712 domain separator for EIP2612 permit API
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                // The value of
-                // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
-                0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f,
-                keccak256(bytes(name)),
-                keccak256(bytes(version)),
-                block.chainid,
-                address(this)));
+        // Cache constant domain separator fields so that they don't have to be recomputed for each permit approval
+        domainSepFields.push(
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
+        domainSepFields.push(keccak256(bytes(tokenName)));
+        domainSepFields.push(keccak256(bytes(tokenVersion)));
 
         // There must be an ERC1820 registry deployed on the network for ERC777
         require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
@@ -108,6 +103,27 @@ abstract contract OmniTokenInternal is
 
     /** @notice The ERC777 granularity. (Hardcoded to 1, for maximum compatibility with ERC20.) */
     uint256 public constant override(IERC777) granularity = 1;
+
+    // -----------------------------------------------------------------------------------------------------------------
+
+    /**
+     * @notice EIP712 domain separator for EIP2612 permits.
+     *
+     * @dev [EIP2612] Part of the EIP2612 permit API.
+     *
+     * @return The domain separator for EIP2612 permits.
+     */
+    function DOMAIN_SEPARATOR() public view override(IEIP2612) returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                domainSepFields[0],
+                domainSepFields[1],
+                domainSepFields[2],
+                // Domain separator must be dynamically generated to prevent sidechain replay attacks:
+                // https://github.com/dublr/dublr/issues/10
+                block.chainid,
+                address(this)));
+    }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Function modifiers
@@ -670,7 +686,7 @@ abstract contract OmniTokenInternal is
         // Recover address of signer from digest, and check it matches the required signer (the token holder)
         // The \x19 prefix is part of the Recursive Length Prefix (RLP) encoding:
         // https://blog.ricmoo.com/verifying-messages-in-solidity-50a94f82b2ca
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, keccak256ABIEncoding));
+        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), keccak256ABIEncoding));
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(recoveredAddress != address(0) && recoveredAddress == requiredSigner, "Invalid sig");
     }
