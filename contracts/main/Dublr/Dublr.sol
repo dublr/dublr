@@ -354,7 +354,11 @@ contract Dublr is DublrInternal, IDublrDEX {
      * otherwise the transaction will revert with "Too much slippage" (this is to prevent slippage due to sudden
      * market changes, particularly sell order cancelations).
      *
-     * The `sell()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
+     * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
+     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop and the remaining (unspent) ETH
+     * balanced will be refunded, with an `OutOfGasForBuyingSellOrders` event and a `RefundChange` event emitted.
+     *
+     * The `buy()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
      * the 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
      * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
      * If minting new tokens, then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
@@ -391,6 +395,18 @@ contract Dublr is DublrInternal, IDublrDEX {
      */
     function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             public payable override(IDublrDEX) stateUpdater {
+        
+        // Up to 90% of the gas can be used for buying sell orders, leaving a minimum of 10% of the gas for
+        // the rest of this function, including minting. (Buying sell orders is an expensive operation, since
+        // it can involve manipulating the heap, potentially removing the root node of the heap for many
+        // separate sell orders.) In testing, between ~90% and 99% of the gas was used for buying sell orders,
+        // with the percentage increasing the more sell orders that were bought.
+        // Buying sell orders will terminate when the amount of gas remaining falls below buySellOrderMinGasLimit,
+        // to prevent a DoS (gas exhaustion) attack on the exchange. Instead, if the remaining gas falls below
+        // this limit, buying of sell orders will stop, and an OutOfGasForBuyingSellOrders event will be emitted.
+        uint256 buySellOrdersMinGasLimit = gasleft() / 10;
+
+        // The buyer is the caller
         address buyer = msg.sender;
 
         // Get the ETH value sent to this function in units of ETH wei
@@ -411,22 +427,19 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
-        for (uint256 numSellOrdersBought = 0;
+        while (
                 // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
                 // buying stage. This allows exchange function to be shut down or disabled if necessary without
                 // affecting minting.
                 buyingEnabled && allowBuying
                 // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
                 // or until we run out of orders.
-                && buyOrderRemainingETHWEI > 0 && orderBook.length > 0; ) {
+                && buyOrderRemainingETHWEI > 0 && orderBook.length > 0) {
                 
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
 
-            // If minting hasn't ended and hasn't been disabled by the owner or disallowed by the caller, stop
-            // iterating through sell orders once the order price is above the current mint price. If minting
-            // has ended, or has been disabled or disallowed, then keep buying sell orders in increasing order
-            // of price, until the buyer's balance is exhausted or there are no more sell orders.
+            // Stop iterating through sell orders once the order price is above the current mint price.
             if (mintPriceETHPerDUBLR_x1e9 > 0 && sellOrder.priceETHPerDUBLR_x1e9 > mintPriceETHPerDUBLR_x1e9) {
                 break;
             }
@@ -538,18 +551,23 @@ contract Dublr is DublrInternal, IDublrDEX {
             emit Buy(buyer, sellOrder.seller,
                     sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
-
-            unchecked { ++numSellOrdersBought; }  // Save gas by using unchecked
             
-            if (numSellOrdersBought == MAX_SELL_ORDERS_PER_BUY) {
-                // Stop after processing MAX_SELL_ORDERS_PER_BUY buy orders, to prevent uncontrolled resource
-                // consumption DoS attacks. See: https://swcregistry.io/docs/SWC-128
+            if (gasleft() < buySellOrdersMinGasLimit) {
+                // Ran out of gas for buying sell orders --  prevent uncontrolled resource consumption DoS attacks.
+                // See: https://swcregistry.io/docs/SWC-128
+                
+                // Emit event
+                emit OutOfGasForBuyingSellOrders(buyer, buyOrderRemainingETHWEI, totBoughtOrMintedDUBLRWEI);
+
+                // Stop processing sell orders, and also do not fall through to minting (since there may be a big
+                // jump in price between the current order's sell price and the mint price). The remaining ETH
+                // balance must be refunded as-is.
                 
                 // Refund the rest of the remaining ETH to the buyer
                 amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
                 // Emit RefundChange event
                 emit RefundChange(buyer, buyOrderRemainingETHWEI);
-                // Stop processing sell orders
+                // Stop processing sell orders, and do not mint anything
                 buyOrderRemainingETHWEI = 0;
                 break;
             }
@@ -606,7 +624,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Calculate how much change to give for the last fractional ETH value that is worth less than 1 DUBLR
             // (amountToMintETHWEI is clamped above to a max of buyOrderRemainingETHWEI)
             unchecked { buyOrderRemainingETHWEI -= amountToMintETHWEI; }  // Save gas (see invariant above)
-            
         }
         
         // Refund unspent balance: -------------------------------------------------------------------------------------
