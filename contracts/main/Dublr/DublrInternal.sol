@@ -148,7 +148,7 @@ abstract contract DublrInternal is OmniToken {
      * @param order The order to set at the position.
      */
     function setOrder(uint256 heapIdx, Order memory order) private {
-        require(heapIdx <= orderBook.length, "heapIdx");  // Sanity check
+        assert(heapIdx <= orderBook.length);  // Sanity check
         if (heapIdx == orderBook.length) {
             orderBook.push(order);
         } else {
@@ -243,8 +243,7 @@ abstract contract DublrInternal is OmniToken {
      * @return removedOrder The order at the given heap index.
      */
     function heapRemove(uint256 heapIdx) internal returns (Order memory removedOrder) {
-        require(orderBook.length > 0, "Empty heap");  // Sanity check
-        require(heapIdx < orderBook.length, "heapIdx");  // Sanity check
+        assert(orderBook.length > 0 && heapIdx < orderBook.length);  // Sanity check
         // Set element to be removed as return value
         removedOrder = orderBook[heapIdx];
         // After removing this order, there are no other orders for the seller (sellers can have only one
