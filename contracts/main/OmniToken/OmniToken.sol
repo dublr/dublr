@@ -217,9 +217,7 @@ contract OmniToken is OmniTokenInternal {
         _allowance[holder][spender] = amount;
         
         // Update expiration.
-        // For allowedAmount == 0, set expiration time to 0 to free up storage.
-        uint256 approvedExpirationTime = amount == 0 ? 0 : expirationTimestamp;
-        _allowanceExpirationTimestamp[holder][spender] = approvedExpirationTime;
+        _allowanceExpirationTimestamp[holder][spender] = expirationTimestamp;
 
         // EMIT EVENTS:
 
@@ -228,7 +226,7 @@ contract OmniToken is OmniTokenInternal {
         // Emit ERC20 "safe approval" event
         emit ApprovalInfo(holder, spender, prevAmount, amount);
         // Emit ERC20 "approval with expiration" event
-        emit ApprovalWithExpiration(holder, spender, amount, approvedExpirationTime);
+        emit ApprovalWithExpiration(holder, spender, amount, expirationTimestamp);
         
         // NO INTERACTIONS (modified with extCallerDenied)
     }
