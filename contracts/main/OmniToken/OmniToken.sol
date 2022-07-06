@@ -171,9 +171,7 @@ contract OmniToken is OmniTokenInternal {
 
         // PRECONDITIONS [CHECKS]:
         
-        require(operator != address(0), "Bad operator");
-        require(account != address(0), "Bad account");
-        require(amount != 0, "Zero amount");
+        require(operator != address(0) && account != address(0) && amount != 0, "Bad arg");
 
         // MINT [EFFECTS]:
 
@@ -243,7 +241,7 @@ contract OmniToken is OmniTokenInternal {
             private stateUpdater extCallerDenied {
             
         // Can't use allowance from the ERC777 API (sanity check)
-        require(_erc777CallDepth == 0, "Can't use allowance");
+        assert(_erc777CallDepth == 0);
 
         uint256 allowedAmount = _allowance[holder][/* spender = */ operator];
         
@@ -330,9 +328,7 @@ contract OmniToken is OmniTokenInternal {
 
         // PRECONDITIONS [CHECKS]:
 
-        require(operator != address(0), "Bad operator");
-        require(account != address(0), "Bad account");
-        require(amount != 0, "Zero amount");
+        require(operator != address(0) && account != address(0) && amount != 0, "Bad arg");
 
         // BURN [EFFECTS]:
 
@@ -383,9 +379,7 @@ contract OmniToken is OmniTokenInternal {
 
         // PRECONDITIONS [CHECKS]:
 
-        require(operator != address(0), "Bad operator");
-        require(holder != address(0), "Bad holder");
-        require(recipient != address(0), "Bad recipient");
+        require(operator != address(0) && holder != address(0) && recipient != address(0), "Bad arg");
         // Zero amount is valid for ERC20 transfers, for some reason (even though it's wasteful)
 
         // PERFORM TRANSFER [EFFECTS]:
@@ -461,11 +455,10 @@ contract OmniToken is OmniTokenInternal {
     
         // PRECONDITIONS [CHECKS]:
         
-        require(holder != address(0), "Bad holder");
-        require(spender != address(0), "Bad spender");
+        require(holder != address(0) && spender != address(0), "Bad arg");
         require(_unlimitedAllowancesEnabled || allowedAmount != UNLIMITED_ALLOWANCE, "Unlimited allowance disabled");
         // ERC777 doesn't use the approval API (sanity check)
-        require(_erc777CallDepth == 0, "Can't use allowance");
+        assert(_erc777CallDepth == 0);
         // solhint-disable-next-line not-rely-on-time
         require(block.timestamp <= expirationTimestamp, "Allowance expired");
 

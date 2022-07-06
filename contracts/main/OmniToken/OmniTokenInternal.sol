@@ -419,7 +419,6 @@ abstract contract OmniTokenInternal is
 
     /** @dev Register a supported interface via ERC165. */
     function registerInterfaceViaERC165(bytes4 interfaceId, bool supported) internal {
-        require(interfaceId != 0x01ffc9a7 && interfaceId != 0xffffffff, "Bad interfaceId"); // Reserved by ERC165
         _supportedInterfaces[interfaceId] = supported;
     }
 
@@ -557,11 +556,12 @@ abstract contract OmniTokenInternal is
             address holder, address spender, uint256 amount, bytes memory data)
             internal extCaller returns (bool success) {
         // `spender` must declare it implements ERC1363 spender interface via ERC165
-        require(isContract(spender), "Not ERC1363 spender");
-        requireContractToSupportInterface(spender, type(IERC1363Spender).interfaceId, "Not ERC1363 spender");
+        string memory errMsg = "Not ERC1363 spender";
+        require(isContract(spender), errMsg);
+        requireContractToSupportInterface(spender, type(IERC1363Spender).interfaceId, errMsg);
         try IERC1363Spender(spender).onApprovalReceived(holder, amount, data) returns (bytes4 retVal) {
             // Check return value
-            require(retVal == type(IERC1363Spender).interfaceId, "Not ERC1363 spender");
+            require(retVal == type(IERC1363Spender).interfaceId, errMsg);
         } catch Error(string memory revertMsg) {
             revert NotificationHookFailure(spender, "onApprovalReceived", revertMsg, "");
         } catch (bytes memory revertData) {
@@ -585,11 +585,12 @@ abstract contract OmniTokenInternal is
             address operator, address sender, address recipient, uint256 amount, bytes memory data)
             internal extCaller returns (bool success) {
         // `recipient` must declare it implements ERC1363 recipient interface via ERC165
-        require(isContract(recipient), "Not ERC1363 recipient");
-        requireContractToSupportInterface(recipient, type(IERC1363Receiver).interfaceId, "Not ERC1363 recipient");
+        string memory errMsg = "Not ERC1363 recipient";
+        require(isContract(recipient), errMsg);
+        requireContractToSupportInterface(recipient, type(IERC1363Receiver).interfaceId, errMsg);
         try IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data) returns (bytes4 retVal) {
             // Check return value
-            require(retVal == type(IERC1363Receiver).interfaceId, "Not ERC1363 recipient");
+            require(retVal == type(IERC1363Receiver).interfaceId, errMsg);
         } catch Error(string memory revertMsg) {
             revert NotificationHookFailure(recipient, "onTransferReceived", revertMsg, "");
         } catch (bytes memory revertData) {
@@ -615,10 +616,11 @@ abstract contract OmniTokenInternal is
         // Sending to an EOA always succeeds, by falling through to the return statement
         if (isContract(recipient)) {
             // `recipient` must declare it implements ERC4524 recipient interface via ERC165
-            requireContractToSupportInterface(recipient, type(IERC4524Recipient).interfaceId, "Not ERC4524 recipient");
+            string memory errMsg = "Not ERC4524 recipient";
+            requireContractToSupportInterface(recipient, type(IERC4524Recipient).interfaceId, errMsg);
             try IERC4524Recipient(recipient).onERC20Received(operator, sender, amount, data) returns (bytes4 retVal) {
                 // Check return value
-                require(retVal == type(IERC4524Recipient).interfaceId, "Not ERC4524 recipient");
+                require(retVal == type(IERC4524Recipient).interfaceId, errMsg);
             } catch Error(string memory revertMsg) {
                 revert NotificationHookFailure(recipient, "onERC20Received", revertMsg, "");
             } catch (bytes memory revertData) {
