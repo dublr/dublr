@@ -117,12 +117,6 @@ contract OmniToken is OmniTokenInternal {
     // Constructor
 
     /**
-     * @dev Function that can be used to pass [] to the constructor, for `erc777DefaultOperators`.
-     * Needed because Solidity has no way to declare an empty typed array literal.
-     */
-    function emptyAddressArray() internal pure returns (address[] memory) { }
-
-    /**
      * @notice OmniToken constructor.
      *
      * @param tokenName the name of the token.
