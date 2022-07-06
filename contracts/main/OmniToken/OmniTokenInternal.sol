@@ -312,11 +312,7 @@ abstract contract OmniTokenInternal is
         registerInterfaceViaERC165(type(IEIP2612).interfaceId, enable);
         registerInterfaceViaERC165(type(IEIP2612).interfaceId ^ type(IERC20).interfaceId, enable);
 
-        // Not sure what to register EIP2612 support under
-        registerInterfaceViaERC1820("ERC2612Token", enable);
-        registerInterfaceViaERC1820("EIP2612Token", enable);
         registerInterfaceViaERC1820("ERC2612Permit", enable);
-        registerInterfaceViaERC1820("EIP2612Permit", enable);
     }
 
     /** @dev Require EIP2612 permit support to be enabled. */
