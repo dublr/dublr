@@ -411,8 +411,6 @@ contract Dublr is DublrInternal, IDublrDEX {
                 
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
-            // If you're trying to buy your own sell order, you need to cancel your sell order first
-            require (sellOrder.seller != buyer, "Can't buy own sell order");
 
             // If minting hasn't ended and hasn't been disabled by the owner or disallowed by the caller, stop
             // iterating through sell orders once the order price is above the current mint price. If minting
