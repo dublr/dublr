@@ -411,7 +411,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         uint256 amountToRefundToBuyerETHWEI = 0;
         require(amountToSendToSellers.length == 0, "Internal error");  // Sanity check
 
-        // Market-matching the buyer with sellers, and executing orders: -----------------------------------------------
+        // Buying sell orders: -----------------------------------------------------------------------------------------
 
         for (uint256 numSellOrdersBought = 0;
                 // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
@@ -561,11 +561,13 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // If the buyer's ETH balance is still greater than zero after there are no more sell orders below the
         // mint price, switch to minting
-        if (buyOrderRemainingETHWEI > 0) {
-            // Check minting is enabled & is allowed by the caller
-            require(mintingEnabled && allowMinting, "Out of sell orders; minting disabled");
-            // If mint price is 0, then the minting period has finished, and we can't fulfill the entire buy order
-            require(mintPriceETHPerDUBLR_x1e9 > 0, "Out of sell orders; minting ended");
+        if (
+            // Only mint if minting is enabled by owner and is allowed by the caller
+            mintingEnabled && allowMinting
+            // If mint price is 0, then the minting period has finished
+            && mintPriceETHPerDUBLR_x1e9 > 0
+            // Only mint if there is a remaining ETH balance
+            && buyOrderRemainingETHWEI > 0) {
 
             // Mint DUBLR tokens into buyer's account: -----------------------------------------------------------------
 
@@ -607,22 +609,24 @@ contract Dublr is DublrInternal, IDublrDEX {
             // (amountToMintETHWEI is clamped above to a max of buyOrderRemainingETHWEI)
             unchecked { buyOrderRemainingETHWEI -= amountToMintETHWEI; }  // Save gas (see invariant above)
             
-            // If the remaining ETH balance is greater than zero, it must be equivalent to less than 1 DUBLR,
-            // so return the remaining ETH balance as change back to the buyer.
-            if (buyOrderRemainingETHWEI > 0) {
-                amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
-                // Emit RefundChange event
-                emit RefundChange(buyer, buyOrderRemainingETHWEI);
-                // All remaining ETH is used up.
-                buyOrderRemainingETHWEI = 0;
-            }
         }
         
-        // Protect against slippage ------------------------------------------------------------------------------------
+        // Refund unspent balance: -------------------------------------------------------------------------------------
+        
+        // If the remaining ETH balance is greater than zero, it could not all be spent -- refund to buyer
+        if (buyOrderRemainingETHWEI > 0) {
+            amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
+            // Emit RefundChange event
+            emit RefundChange(buyer, buyOrderRemainingETHWEI);
+            // All remaining ETH is used up.
+            buyOrderRemainingETHWEI = 0;
+        }
+        
+        // Protect against slippage: -----------------------------------------------------------------------------------
         
         require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI, "Too much slippage");
         
-        // Transfer ETH from buyer to seller, and ETH fees to owner ----------------------------------------------------
+        // Transfer ETH from buyer to seller, and ETH fees to owner: ---------------------------------------------------
         
         // Send any pending ETH payments to sellers
         uint256 totalSentToSellersAndBuyerETHWEI = 0;
