@@ -137,8 +137,7 @@ abstract contract DublrInternal is OmniToken {
         return order0.priceETHPerDUBLR_x1e9 < order1.priceETHPerDUBLR_x1e9 ? int(-1)
                : order0.priceETHPerDUBLR_x1e9 > order1.priceETHPerDUBLR_x1e9 ? int(1)
                : order0.timestamp < order1.timestamp ? int(-1)
-               : order0.timestamp > order1.timestamp ? int(1)
-               : int(0);
+               : int(1);
     }
 
     /**
