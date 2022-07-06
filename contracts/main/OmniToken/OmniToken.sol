@@ -184,12 +184,11 @@ contract OmniToken is OmniTokenInternal {
         if (_erc777CallDepth > 0) {
             // Emit ERC777 Minted event
             emit Minted(operator, account, amount, data, operatorData);
-        } else {
-            // Emit ERC20 transfer event showing transfer from address(0)
-            emit Transfer(/* sender = */ address(0), /* recipient = */ account, amount);
-            // Emit ERC20 "safe approval" transfer event
-            emit TransferInfo(operator, /* sender = */ address(0), /* recipient = */ account, amount);
         }
+        // Emit ERC20 mint event (indicating a transfer from address(0))
+        emit Transfer(/* sender = */ address(0), /* recipient = */ account, amount);
+        // Emit ERC20 "safe approval" mint event
+        emit TransferInfo(operator, /* sender = */ address(0), /* recipient = */ account, amount);
         
         // NO INTERACTIONS (modified with extCallerDenied)
     }
@@ -223,8 +222,10 @@ contract OmniToken is OmniTokenInternal {
         emit Approval(holder, spender, amount);
         // Emit ERC20 "safe approval" event
         emit ApprovalInfo(holder, spender, prevAmount, amount);
-        // Emit ERC20 "approval with expiration" event
-        emit ApprovalWithExpiration(holder, spender, amount, expirationTimestamp);
+        if (expirationTimestamp < UNLIMITED_EXPIRATION) {
+            // Emit ERC20 "approval with expiration" event if approval is not unlimited
+            emit ApprovalWithExpiration(holder, spender, amount, expirationTimestamp);
+        }
         
         // NO INTERACTIONS (modified with extCallerDenied)
     }
@@ -342,12 +343,11 @@ contract OmniToken is OmniTokenInternal {
         if (_erc777CallDepth > 0) {
             // Emit ERC777 Burned event
             emit Burned(operator, account, amount, data, operatorData);
-        } else {
-            // Otherwise emit ERC20 event for the other token standards
-            emit Transfer(/* sender = */ account, /* recipient = */ address(0), amount);
-            // Emit ERC20 "safe approval" transfer event
-            emit TransferInfo(operator, /* sender = */ account, /* recipient = */ address(0), amount);
         }
+        // Emit ERC20 burn event (indicating a transfer to address(0))
+        emit Transfer(/* sender = */ account, /* recipient = */ address(0), amount);
+        // Emit ERC20 "safe approval" transfer event
+        emit TransferInfo(operator, /* sender = */ account, /* recipient = */ address(0), amount);
 
         // NOTIFY TOKEN BURNER [INTERACTIONS]
         
@@ -406,12 +406,11 @@ contract OmniToken is OmniTokenInternal {
         if (_erc777CallDepth > 0) {
             // Emit ERC777 Sent event
             emit Sent(operator, holder, recipient, amount, data, operatorData);
-        } else {
-            // Emit ERC20 transfer event
-            emit Transfer(holder, recipient, amount);
-            // Emit ERC20 "safe approval" transfer event
-            emit TransferInfo(operator, holder, recipient, amount);
         }
+        // Emit ERC20 transfer event
+        emit Transfer(holder, recipient, amount);
+        // Emit ERC20 "safe approval" transfer event
+        emit TransferInfo(operator, holder, recipient, amount);
 
         // NOTIFY SENDER/RECIPIENT [INTERACTIONS]:
 
