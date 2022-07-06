@@ -496,7 +496,7 @@ describe("Dublr", () => {
   it("Minting can be disabled, but by owner only", async () => {
     await contract0._owner_enableBuying(false);
     await contract0._owner_enableMinting(false);
-    await expect(contract0["buy()"]({value: initialMintPriceETHPerDUBLR_x1e9 * 10}))
+    await expect(contract0["buy(uint256,bool,bool)"](1e6, true, true, {value: initialMintPriceETHPerDUBLR_x1e9 * 10}))
             .to.be.revertedWith("Out of sell orders; minting disabled");
     const contract1 = contract0.connect(wallet[1]);
     await expect(contract1._owner_enableBuying(true)).to.be.revertedWith("Not owner");
@@ -533,18 +533,18 @@ describe("Dublr", () => {
 
   it("Minting without any sell orders", async () => {
     const contract1 = await contract0.connect(wallet[1]);
-    await expect(contract1["buy()"]()).to.be.revertedWith("Zero payment");
-    await contract1["buy()"]({value: 1});
+    await expect(contract1["buy(uint256,bool,bool)"](1e6, true, true, )).to.be.revertedWith("Zero payment");
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 1});
     const amt0 = toDUBLR(1);
     expect(await contract1.balanceOf(wallet[1].address)).to.equal(amt0);
-    await contract1["buy()"]({value: 5});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 5});
     const amt1 = toDUBLR(5);
     expect(await contract1.balanceOf(wallet[1].address)).to.equal(amt0 + amt1);
     // Moving one doubling period forward should double the exchange rate, so buying with 1000000 ETH wei
     // should yield (1000000 wei / initialMintPriceETHPerDUBLR) = 500000 DUBLR wei tokens.
     await ethers.provider.send("evm_increaseTime", [3600 * 24 * DOUBLING_PERIOD_DAYS]);
     await ethers.provider.send("evm_mine");
-    await contract1["buy()"]({value: 1000000});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 1000000});
     const amt2 = toDUBLR(1000000 / 2);
     // Need to do approximate comparison because exp function approximation is not perfect --
     // after DOUBLING_PERIOD_DAYS days, a price of 5000 grows to 9997, not to 10000
@@ -649,8 +649,8 @@ describe("Dublr", () => {
     const contract3 = await contract0.connect(wallet[3]);
     
     // Mint coins for contract1 and contract2
-    await contract1["buy()"]({value: 10, gasPrice: 0});  // 10 ETH wei => 2M DUBLR wei
-    await contract2["buy()"]({value: 10, gasPrice: 0});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 10, gasPrice: 0});  // 10 ETH wei => 2M DUBLR wei
+    await contract2["buy(uint256,bool,bool)"](1e6, true, true, {value: 10, gasPrice: 0});
 
     expect(await contract0.balanceOf(wallet[1].address)).to.equal(2000000);
     await contract1.sell(initialMintPriceETHPerDUBLR_x1e9 / 2, 1200000);  // 400000 DUBL per ETH, 1200000 DUBLR = 3 ETH
@@ -667,7 +667,7 @@ describe("Dublr", () => {
     // After adding 0.1% fee, the price is 1252 * 10^9.
     // => This translates to purchasing 2 * 10^9 / 1252 = 1597444 tokens.
     // This is less than the sell order amount of 1600000 tokens.
-    await contract3["buy()"]({value: 2, gasPrice: 0});
+    await contract3["buy(uint256,bool,bool)"](1e6, true, true, {value: 2, gasPrice: 0});
     expect(await contract0.balanceOf(wallet[3].address, {gasPrice: 0})).to.equal(1597444);
     // The tokens that were in wallet[2] but not part of the order should not have been sold
     expect(await contract0.balanceOf(wallet[2].address, {gasPrice: 0})).to.equal(400000);
@@ -690,13 +690,13 @@ describe("Dublr", () => {
     const contract3 = await contract0.connect(wallet[3]);
     
     // Mint coins for contract1 and contract2
-    await contract1["buy()"]({value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
     expect(await contract0.balanceOf(wallet[1].address)).to.equal(2e10);
 
     await contract1.sell(initialMintPriceETHPerDUBLR_x1e9 / 4, 1e10);  // 1e10 DUBLR at 1250/1e9 ETH per DUBLR
     
     const ethBalance0_1 = await wallet[0].getBalance();
-    await contract3["buy()"]({value: 2500, gasPrice: 0});
+    await contract3["buy(uint256,bool,bool)"](1e6, true, true, {value: 2500, gasPrice: 0});
     expect((await contract0.cheapestSellOrder({gasPrice: 0})).priceETHPerDUBLR_x1e9)
             .to.equal(initialMintPriceETHPerDUBLR_x1e9 / 4);  // Price = 1250 => price incl fee = 1252
     // Number of tokens purchased = floor(2500 * 1e9 / 1252) = 1996805111
@@ -714,8 +714,8 @@ describe("Dublr", () => {
     const contract3 = await contract0.connect(wallet[3]);
     
     // Mint coins for contract1 and contract2
-    await contract1["buy()"]({value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
-    await contract2["buy()"]({value: 100000, gasPrice: 0});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
+    await contract2["buy(uint256,bool,bool)"](1e6, true, true, {value: 100000, gasPrice: 0});
     expect(await contract0.balanceOf(wallet[1].address)).to.equal(2e10);
 
     await contract1.sell(initialMintPriceETHPerDUBLR_x1e9 / 4, 1e9);   // 1e9 DUBLR at 1250/1e9 ETH per DUBLR
@@ -737,7 +737,7 @@ describe("Dublr", () => {
     // The number of DUBLR tokens that can be bought with the remaining ETH balance is
     // 2002 / (2503 / 10^9) = 799840191.
     // Amount remaining of order = 1e10 - 799840191 == 9200159809
-    await contract3["buy()"]({value: Math.ceil(3250 * 1.001), gasPrice: 0});
+    await contract3["buy(uint256,bool,bool)"](1e6, true, true, {value: Math.ceil(3250 * 1.001), gasPrice: 0});
     // The cheapest order should have totally sold out, leaving only the more expensive order
     expect((await contract0.cheapestSellOrder({gasPrice: 0})).priceETHPerDUBLR_x1e9)
             .to.equal(initialMintPriceETHPerDUBLR_x1e9 / 2);
@@ -756,7 +756,7 @@ describe("Dublr", () => {
     const contract1 = await contract0.connect(wallet[1]);
     const contract2 = await contract0.connect(wallet[2]);
 
-    await contract1["buy()"]({value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 100000, gasPrice: 0});  // 100000 ETH wei => 20B DUBLR wei
 
     await contract1.sell(2500, 2e10);  // 20B DUBLR at 2500/1e9 ETH per DUBLR (half the price they were bought at)
 
@@ -765,7 +765,7 @@ describe("Dublr", () => {
     const ethBalance2_0 = await wallet[2].getBalance();
     // Buy all 200000 ETH worth of DUBLR from wallet[1]'s sell order, then mint an extra 100000 ETH worth of DUBLR.
     const amtSpent = Math.ceil(300000 * 1.001) + 1;  // == 300301 ETH
-    await contract2["buy()"]({value: amtSpent, gasPrice: 0});
+    await contract2["buy(uint256,bool,bool)"](1e6, true, true, {value: amtSpent, gasPrice: 0});
     // Max number of DUBLR tokens that could be bought == Math.trunc(300301 * 1e9 / 2503) == 119976428286
     // Max number in sell order == 20B (so the other 99976428286 DUBLR are not bought from the sell order)
     // Amt spent on first 20B tokens = 2e10 * 2503 / 1e9 = 50060 ETH
@@ -798,7 +798,7 @@ describe("Dublr", () => {
     const ethBalance1_0 = await wallet[1].getBalance();
     const amt0 = Math.ceil(mintPrice * 1e-9 * 3.5);
     const amt0Expected = Math.ceil(mintPrice * 1e-9 * 3);
-    await contract1["buy()"]({value: amt0, gasPrice: 0});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: amt0, gasPrice: 0});
     expect(await contract0.balanceOf(wallet[1].address, {gasPrice: 0})).to.equal(3);
     const ethBalance0_1 = await wallet[0].getBalance();
     const ethBalance1_1 = await wallet[1].getBalance();
@@ -808,7 +808,7 @@ describe("Dublr", () => {
     // Try buying 7.9 DUBLR coins (the ETH equivalent of 0.9 DUBLR should be returned as change after minting)
     const amt1 = Math.ceil(mintPrice * 1e-9 * 7.9);
     const amt1Expected = Math.ceil(mintPrice * 1e-9 * 7);
-    await contract1["buy()"]({value: amt1, gasPrice: 0});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: amt1, gasPrice: 0});
     expect(await contract0.balanceOf(wallet[1].address, {gasPrice: 0})).to.equal(3 + 7);
     const ethBalance0_2 = await wallet[0].getBalance();
     const ethBalance1_2 = await wallet[1].getBalance();
@@ -817,7 +817,7 @@ describe("Dublr", () => {
 
     // Try buying 8.0 DUBLR coins (need to round up since the price is about 145.2 ETH per DUBLR
     const amt2 = Math.ceil(mintPrice * 1e-9 * 8);
-    await contract1["buy()"]({value: amt2, gasPrice: 0});
+    await contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: amt2, gasPrice: 0});
     expect(await contract0.balanceOf(wallet[1].address, {gasPrice: 0})).to.equal(3 + 7 + 8);
     const ethBalance0_3 = await wallet[0].getBalance();
     const ethBalance1_3 = await wallet[1].getBalance();
@@ -828,7 +828,7 @@ describe("Dublr", () => {
   it("Unpayable seller", async () => {
     const contract1 = await contract0.connect(wallet[1]);
     const unpayableSeller = await deployContract(wallet[2], UnpayableSeller, []);
-    await contract0["buy()"]({value: 10});  // Mint 10 ETH worth => 2000000 DUBLR
+    await contract0["buy(uint256,bool,bool)"](1e6, true, true, {value: 10});  // Mint 10 ETH worth => 2000000 DUBLR
     // Give the unpayable seller contract a balance
     await contract0._owner_enableTransferToContracts(true);
     await contract0["transfer(address,uint256)"](unpayableSeller.address, 2000000);
@@ -837,7 +837,7 @@ describe("Dublr", () => {
     await unpayableSeller.sell(contract0.address, initialMintPriceETHPerDUBLR_x1e9 - 1, 2000000, {gasPrice: 0});
     // Try buying the sell order (only 9 ETH worth will be bought rather than 10 ETH, because of the market taker fee).
     // This should succeed, but the seller payment should be forfeited.
-    await expect(contract1["buy()"]({value: 10, gasPrice: 0}))
+    await expect(contract1["buy(uint256,bool,bool)"](1e6, true, true, {value: 10, gasPrice: 0}))
             .to.emit(contract0, "Unpayable").withArgs(unpayableSeller.address, 9, "0x");
     const ethBalance0_1 = await wallet[0].getBalance();
     const ethBalance1_1 = await wallet[1].getBalance();
@@ -856,7 +856,7 @@ describe("Dublr", () => {
     // Can buy multiples of 10
     await unpayableBuyer.buy(dublr.address, {value: 20});
     // Can't buy if there is any change due
-    await expect(unpayableBuyer.buy(dublr.address, {value: 25})).to.be.revertedWith("Can't give buyer change");
+    await expect(unpayableBuyer.buy(dublr.address, {value: 25})).to.be.revertedWith("Can't give change");
   });
   
   it("Heap stress test", async () => {

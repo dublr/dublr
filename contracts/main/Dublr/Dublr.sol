@@ -346,28 +346,29 @@ contract Dublr is DublrInternal, IDublrDEX {
      * `value`/`msg.value`, if calling `buy()` from Javascript, Solidity, or a dapp.
      *
      * If there are sell orders in the orderbook that are listed at a cheaper price than the current mint price,
-     * and `allowMint == true` then the sell orders will be purchased first in increasing order of price, in lieu
-     * of minting. If sell orders below the mint price are exhausted, then new coins are minted at the current
-     * mint price, increasing the total supply. If instead `allowMint == false`, then orders are purchased from
-     * the order book, ignoring the mint price.
+     * and `allowBuying == true` then the sell orders will be purchased first in increasing order of price, until
+     * ETH funds run out or the mint price is reached. Then if `allowMinting == true`, new coins are minted at the
+     * current mint price, increasing the total supply.
      *
-     * This payable function should be funded with the appropriate value of tokens to buy, in ETH, including the
-     * 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
+     * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be purchased from sell orders or minted,
+     * otherwise the transaction will revert with "Too much slippage" (this is to prevent slippage due to sudden
+     * market changes, particularly sell order cancelations).
+     *
+     * The `sell()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
+     * the 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
      * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
-     * If minting new tokens (i.e. if there are no sell orders, or insufficient orders, in the order book below
-     * the mint price), then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
+     * If minting new tokens, then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
      * will be minted at the current mint price. Market taker fees and minting fees are non-refundable.
      *
-     * Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price
-     * (after fee deduction), the buyer must be able to receive ETH payments. In other words, the buyer account
-     * must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()`
-     * or `fallback()` functions to receive payment.
+     * Change is sent back to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
+     * price (after fee deduction), and a `RefundChange` event is emitted. The buyer must therefore be able to receive
+     * ETH payments: the buyer account must either be a non-contract wallet (an EOA), or a contract that implements
+     * one of the payable `receive()` or `fallback()` functions to receive payment.
      *
      * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
      * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
-     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange`
-     * event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even
-     * multiple of the token price (i.e. change is given where appropriate).
+     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer and a `RefundChange`
+     * event emitted.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
@@ -377,17 +378,29 @@ contract Dublr is DublrInternal, IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
+     * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
+     *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
+     *      bought or minted by the time all ETH funds of the transaction have been expended, then the transaction is
+     *      reverted and the full provided ETH amount is refunded (minus gas spent, since this is not refundable).
+     *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
+     *      transaction is pending.
+     * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
      * @param allowMinting If `true`, allow the minting of new tokens at the current mint price. This parameter is
-     * available because the mint price grows exponentially, and it is possible you may not want to trigger the 
-     * minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
+     *      available because the mint price grows exponentially, and it is possible you may not want to trigger the 
+     *      minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
      */
-    function buy(bool allowMinting) public payable override(IDublrDEX) stateUpdater {
+    function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
+            public payable override(IDublrDEX) stateUpdater {
         address buyer = msg.sender;
 
+        //require(allowBuying || allowMinting, "Bad arg");
+
         // Get the ETH value sent to this function in units of ETH wei
-        uint256 msgValueETHWEI = msg.value;
-        require(msgValueETHWEI > 0, "Zero payment");
-        uint256 buyOrderRemainingETHWEI = msgValueETHWEI;
+        require(msg.value > 0, "Zero payment");
+        uint256 buyOrderRemainingETHWEI = msg.value;
+
+        // Keep track of total tokens bought or minted
+        uint256 totBoughtOrMintedDUBLRWEI = 0;
 
         // Calculate the mint price -- the price is 0 if minting has finished (MAX_DOUBLING_TIME_SEC seconds
         // or more after contract deployment, mintPrice() will return 0), or has been disabled by calling
@@ -401,10 +414,10 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Market-matching the buyer with sellers, and executing orders: -----------------------------------------------
 
         for (uint256 numSellOrdersBought = 0;
-                // If buyingEnabled is false, skip over the buying stage (minting is still enabled unless
-                // mintingEnabled is also false). This allows exchange function to be shut down if necessary
-                // without affecting minting.
-                buyingEnabled
+                // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
+                // buying stage. This allows exchange function to be shut down or disabled if necessary without
+                // affecting minting.
+                buyingEnabled && allowBuying
                 // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
                 // or until we run out of orders.
                 && buyOrderRemainingETHWEI > 0 && orderBook.length > 0; ) {
@@ -503,6 +516,9 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Deposit the DUBLR amount into the buyer's account
             balanceOf[buyer] += amountToBuyDUBLRWEI;
 
+            // Keep track of total tokens bought or minted
+            totBoughtOrMintedDUBLRWEI += amountToBuyDUBLRWEI;
+
             // Transfer ETH from buyer to seller: ----------------------------------------------------------------------
 
             // Record the amount of ETH to be sent to the seller (there may be several sellers involved in one buy)
@@ -573,6 +589,10 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Call the `extCallerDenied` version to ensure that _mint cannot call out to external contracts,
                 // so that Checks-Effects-Interactions is followed (since we're still updating state).
                 __mint_extCallerDenied(buyer, buyer, amountToMintDUBLRWEI, "", "");
+
+                // Keep track of total tokens bought or minted
+                totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;
+
                 // Emit Dublr Mint event (provides more useful info than other mint events)
                 emit Mint(buyer, mintPriceETHPerDUBLR_x1e9, amountToMintETHWEI, amountToMintDUBLRWEI);
                 
@@ -597,6 +617,10 @@ contract Dublr is DublrInternal, IDublrDEX {
                 buyOrderRemainingETHWEI = 0;
             }
         }
+        
+        // Protect against slippage ------------------------------------------------------------------------------------
+        
+        require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI, "Too much slippage");
         
         // Transfer ETH from buyer to seller, and ETH fees to owner ----------------------------------------------------
         
@@ -654,7 +678,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Refund change back to buyer. Reverts if the buyer does not accept payment. (This is different than
             // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
             // shut down the whole exchange.)
-            sendETH(buyer, amountToRefundToBuyerETHWEI, "Can't give buyer change");
+            sendETH(buyer, amountToRefundToBuyerETHWEI, "Can't give change");
             totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
         }
         
@@ -663,50 +687,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Send fees to owner
             sendETH(_owner, address(this).balance, "Can't pay owner");
         }
-    }
-
-    /**
-     * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the ETH `payableAmount`/`value`
-     * sent with the transaction.
-     *
-     * @dev A payable function that exchanges the ETH value attached to the transaction for DUBLR tokens.
-     * Equivalent to calling `buy(true)`, i.e. setting the parameter `allowMinting == true`.
-     *
-     * The ETH amount exchanged for DUBLR tokens is `payableAmount`, if calling `buy()` from EtherScan, or
-     * `value`/`msg.value`, if calling `buy()` from Javascript, Solidity, or a dapp.
-     *
-     * If there are sell orders in the orderbook that are listed at a cheaper price than the current mint price,
-     * then these will be purchased first in increasing order of price, in lieu of minting. If sell orders below
-     * the mint price are exhausted, then new coins are minted at the current mint price, increasing the total supply.
-     *
-     * This payable function should be funded with the appropriate value of tokens to buy, in ETH, including the
-     * 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
-     * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
-     * If minting new tokens (i.e. if there are no sell orders, or insufficient orders, in the order book below
-     * the mint price), then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
-     * will be minted at the current mint price. Market taker fees and minting fees are non-refundable.
-     *
-     * Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price
-     * (after fee deduction), the buyer must be able to receive ETH payments. In other words, the buyer account
-     * must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()`
-     * or `fallback()` functions to receive payment.
-     *
-     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
-     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
-     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `Refund`
-     * event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even
-     * multiple of the token price (i.e. change is given where appropriate).
-     *
-     * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
-     * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
-     * the laws of any legal jurisdiction in which you hold or use the Dublr token.
-     * 
-     * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
-     * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
-     * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
-     */
-    function buy() external payable override(IDublrDEX) {
-        buy(/* allowMinting = */ true);
     }
 }
 

@@ -17,7 +17,7 @@ contract UnpayableBuyer {
 
     // Insecure buy function, only for testing
     function buy(address payable dublrContract) external payable {
-        Dublr(dublrContract).buy{value: msg.value}();
+        Dublr(dublrContract).buy{value: msg.value}(1e24, true, true);
     }
 }
 
