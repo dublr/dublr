@@ -310,7 +310,8 @@ contract Dublr is DublrInternal, IDublrDEX {
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders from different
         // addresses, by making it costly to do this. We require that the total amount of the sell order be greater than
         // the gas required to run the sell function.
-        require(dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell order too small");
+        require(!enforceMinSellValue ||
+                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell order too small");
 
         // Cancel existing order, if there is one, before placing new sell order
         address seller = msg.sender;

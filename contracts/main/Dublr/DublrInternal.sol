@@ -29,6 +29,9 @@ abstract contract DublrInternal is OmniToken {
     /** @dev true if selling is enabled on the built-in distributed exchange. */
     bool internal sellingEnabled = true;
 
+    /** @dev If true, enforce that a sell order's ETH value equivalent is greater than the gas supplied to `sell()`. */
+    bool internal enforceMinSellValue = true;
+
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
@@ -51,6 +54,14 @@ abstract contract DublrInternal is OmniToken {
      * unless minting is also disabled.
      */
     function _owner_enableBuying(bool enable) external ownerOnly { buyingEnabled = enable; }
+
+    /**
+     * @notice Only callable by the owner/deployer of the contract.
+     *
+     * @dev Enable or disable enforcement that a sell order's ETH value equivalent must be greater than the gas
+     * supplied to `sell()`, to prevent tiny sell orders from being created.
+     */
+    function _owner_enforceMinSellValue(bool enforce) external ownerOnly { enforceMinSellValue = enforce; }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Constants
