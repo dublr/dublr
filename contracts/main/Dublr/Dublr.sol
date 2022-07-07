@@ -367,9 +367,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
      *      transaction is pending.
      * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
-     * @param allowMinting If `true`, allow the minting of new tokens at the current mint price. This parameter is
-     *      available because the mint price grows exponentially, and it is possible you may not want to trigger the 
-     *      minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
+     * @param allowMinting If `true`, allow the minting of new tokens at the current mint price.
      * @return amountToRefundToBuyerETHWEI The amount of ETH to refund to the buyer.
      * @return amountToSendToSellersCopy The amount(s) of ETH to send to the sellers.
      */
@@ -398,10 +396,9 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Keep track of total tokens bought or minted
         uint256 totBoughtOrMintedDUBLRWEI = 0;
 
-        // Calculate the mint price -- the price is 0 if minting has finished (MAX_DOUBLING_TIME_SEC seconds
-        // or more after contract deployment, mintPrice() will return 0), or has been disabled by calling
-        // `_owner_enableMinting(false)`, or has been disallowed by the user by passing in `allowMinting == false`.
-        uint256 mintPriceETHPerDUBLR_x1e9 = mintingEnabled && allowMinting ? mintPrice() : 0;
+        // Calculate the mint price -- the price is 0 if minting has finished
+        // (MAX_DOUBLING_TIME_SEC seconds or more after contract deployment, mintPrice() will return 0)
+        uint256 mintPriceETHPerDUBLR_x1e9 = mintPrice();
 
         // Amount of ETH to refund to (buyer, and amounts to send to sellers at end of transaction
         amountToRefundToBuyerETHWEI = 0;  // Return param
@@ -693,9 +690,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
      *      transaction is pending.
      * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
-     * @param allowMinting If `true`, allow the minting of new tokens at the current mint price. This parameter is
-     *      available because the mint price grows exponentially, and it is possible you may not want to trigger the 
-     *      minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
+     * @param allowMinting If `true`, allow the minting of new tokens at the current mint price.
      */
     function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             public payable override(IDublrDEX) {
