@@ -60,6 +60,9 @@ abstract contract DublrInternal is OmniToken {
      *
      * @dev Enable or disable enforcement that a sell order's ETH value equivalent must be greater than the gas
      * supplied to `sell()`, to prevent tiny sell orders from being created.
+     *
+     * This is technically only disabled during unit testing, and it would be a bad idea for the owner to disable
+     * this on a live exchange, as it may enable DoS attacks for a sufficiently determined attacker.
      */
     function _owner_enforceMinSellValue(bool enforce) external ownerOnly { enforceMinSellValue = enforce; }
 
