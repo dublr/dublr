@@ -66,7 +66,10 @@ interface IDublrDEX {
     event Mint(address indexed buyer, uint256 priceETHPerDUBLR_x1e9, uint256 amountSpentETHWEI,
             uint256 amountMintedDUBLRWEI);
 
-    event OutOfGasForBuyingSellOrders(address indexed buyer, uint256 buyOrderRemainingETHWEI, totBoughtOrMintedDUBLRWEI);
+    /**
+     * @notice Emitted when 90% of the supplied buyer's ETH balance has been expended on buying sell orders
+     */
+    event OutOfGasForBuyingSellOrders(address indexed buyer, uint256 buyOrderRemainingETHWEI, uint256 totBoughtDUBLRWEI);
 
     /**
      * @notice Emitted to return any change to the buyer from a `buy()` call, where the provided ETH amount was
