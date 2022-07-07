@@ -432,7 +432,7 @@ describe("OmniToken", () => {
             /* senderAddress */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 200);
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 200,
-            /* deadline */ 1, sig1.v, sig1.r, sig1.s)).to.be.revertedWith("Cert expired"); 
+            /* deadline */ 1, sig1.v, sig1.r, sig1.s)).to.be.revertedWith("Expired"); 
     expect(await contract0.allowance(wallet[0].address, wallet[1].address)).to.equal(100);
     const sig2 = await signERC2612Permit(/* wallet */ wallet[0], /* tokenAddress */ contract0.address,
             /* senderAddress */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 0);
@@ -445,29 +445,29 @@ describe("OmniToken", () => {
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 0,
             /* deadline */ sig3.deadline, sig3.v, sig3.r, sig3.s))
-                    .to.be.revertedWith("Invalid sig"); // wrong allowedAmount
+                    .to.be.revertedWith("Bad sig"); // wrong allowedAmount
     const invalidVal0 = '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe';
     const invalidVal1 = '0x7effffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 1,
             /* deadline */ invalidVal0, sig3.v, sig3.r, sig3.s))
-                    .to.be.revertedWith("Invalid sig"); // wrong deadline
+                    .to.be.revertedWith("Bad sig"); // wrong deadline
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 1,
             /* deadline */ sig3.deadline, 1, sig3.r, sig3.s))
-                    .to.be.revertedWith("Bad sig v val"); // wrong v val (must be 27 or 28)
+                    .to.be.revertedWith("Bad sig"); // wrong v val (must be 27 or 28)
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 1,
             /* deadline */ sig3.deadline, sig3.v, invalidVal0, sig3.s))
-                    .to.be.revertedWith("Invalid sig"); // wrong r
+                    .to.be.revertedWith("Bad sig"); // wrong r
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 1,
             /* deadline */ sig3.deadline, sig3.v, sig3.r, invalidVal0))
-                    .to.be.revertedWith("Bad sig s val"); // s too large
+                    .to.be.revertedWith("Bad sig"); // s too large
     await expect(contract0["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
             /* holder */ wallet[0].address, /* spender */ wallet[1].address, /* allowedAmount */ 1,
             /* deadline */ sig3.deadline, sig3.v, sig3.r, invalidVal1))
-                    .to.be.revertedWith("Invalid sig"); // wrong s
+                    .to.be.revertedWith("Bad sig"); // wrong s
   });
 });
 

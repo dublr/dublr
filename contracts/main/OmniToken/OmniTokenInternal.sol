@@ -128,46 +128,39 @@ abstract contract OmniTokenInternal is
     // -----------------------------------------------------------------------------------------------------------------
     // Function modifiers
 
-    /** @dev The number of functions on the stack that call external contracts. */
-    uint256 private _extCallerDepth;
-
-    /** @dev The number of functions on the stack that deny calling of contracts modified with `extCaller`. */
-    uint256 private _extCallerDeniedDepth;
+    /** @dev The number of functions on the stack that modify contract state. */
+    uint256 private _stateUpdaterDepth;
 
     /**
      * @dev Reentrancy protection for functions that modify account state. Disallows a state-modifying
      * function (stateUpdater) from being called deeper in the callstack than a function that calls an
-     * external contract (modified by `extCaller`).
+     * external contract (modified by `extCaller`), or vice versa.
      */
     modifier stateUpdater() {
         // Prevent reentrance
         require(_extCallerDepth == 0, "Reentrance denied");
+        // slither-disable-next-line reentrancy-eth
+        unchecked { ++_stateUpdaterDepth; }
         _;
+        // slither-disable-next-line reentrancy-eth
+        unchecked { --_stateUpdaterDepth; }
     }
 
-    /** @dev Marks a function that calls an external contract. */
+    /** @dev The number of functions on the stack that call external contracts. */
+    uint256 private _extCallerDepth;
+
+    /**
+     * @dev Reentrancy protection for functions that modify account state. Disallows a function that
+     * calls an external contract (modified by `extCaller`) from being called deeper in the callstack
+     * than a state-modifying function (stateUpdater), or vice versa.
+     */
     modifier extCaller() {
-        require(_extCallerDeniedDepth == 0, "extCaller denied");
+        require(_stateUpdaterDepth == 0, "Reentrance denied");
         // slither-disable-next-line reentrancy-eth
         unchecked { ++_extCallerDepth; }
         _;
         // slither-disable-next-line reentrancy-eth
         unchecked { --_extCallerDepth; }
-    }
-
-    /**
-     * @dev Marks a function that is disallowed from calling an external contract (because it is called
-     * by another function before the other function has finished updating contract state).
-     * Functions modified by `extCaller` and `extCallerDenied` cannot both be on the call stack at the
-     * same time.
-     */
-    modifier extCallerDenied() {
-        require(_extCallerDepth == 0, "extCaller denied");
-        // slither-disable-next-line reentrancy-eth
-        unchecked { ++_extCallerDeniedDepth; }
-        _;
-        // slither-disable-next-line reentrancy-eth
-        unchecked { --_extCallerDeniedDepth; }
     }
 
     // --------------
@@ -446,6 +439,7 @@ abstract contract OmniTokenInternal is
      * @param errMsgOnFail The error message to revert with, if the contract does not support the interface.
      */
     function requireContractToSupportInterface(address contractAddr, bytes4 interfaceId, string memory errMsgOnFail)
+            // Use extCaller modifier for reentrancy protection
             internal extCaller {
         bool supported;
         try IERC165(contractAddr).supportsInterface(interfaceId) returns (bool result) {
@@ -467,6 +461,7 @@ abstract contract OmniTokenInternal is
      * and implementer.
      */
     function registerInterfaceViaERC1820(string memory interfaceName, bool enable) internal {
+        // extCaller modifier not required, since the ERC1820 registry is known and trusted
         IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
                 .setInterfaceImplementer(
                         // address(0) is equivalent to address(this) for first arg of `setInterfaceImplementer`
@@ -486,6 +481,7 @@ abstract contract OmniTokenInternal is
      */
     function lookUpInterfaceViaERC1820(address addrToQuery, string memory interfaceName)
                 internal view returns(address interfaceAddr) {
+        // extCaller modifier not required, since the ERC1820 registry is known and trusted
         return IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
                 .getInterfaceImplementer(addrToQuery, keccak256(bytes(interfaceName)));
     }
@@ -505,7 +501,9 @@ abstract contract OmniTokenInternal is
      */
     function call_ERC777TokensSender_tokensToSend(
             address operator, address sender, address recipient, uint256 amount,
-            bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
+            bytes memory data, bytes memory operatorData)
+            // Use extCaller modifier for reentrancy protection
+            internal extCaller returns (bool success) {
         address senderImplementation = lookUpInterfaceViaERC1820(sender, "ERC777TokensSender");
         if (isContract(senderImplementation)) {
             try IERC777Sender(senderImplementation)
@@ -534,7 +532,9 @@ abstract contract OmniTokenInternal is
      */
     function call_ERC777TokensRecipient_tokensReceived(
             address operator, address sender, address recipient, uint256 amount,
-            bytes memory data, bytes memory operatorData) internal extCaller returns (bool success) {
+            bytes memory data, bytes memory operatorData)
+            // Use extCaller modifier for reentrancy protection
+            internal extCaller returns (bool success) {
         address recipientImpl = lookUpInterfaceViaERC1820(recipient, "ERC777TokensRecipient");
         if (recipientImpl != address(0)) {
             try IERC777Recipient(recipientImpl)
@@ -570,6 +570,7 @@ abstract contract OmniTokenInternal is
      */
     function call_ERC1363Spender_onApprovalReceived(
             address holder, address spender, uint256 amount, bytes memory data)
+            // Use extCaller modifier for reentrancy protection
             internal extCaller returns (bool success) {
         // `spender` must declare it implements ERC1363 spender interface via ERC165
         string memory errMsg = "Not ERC1363 spender";
@@ -599,6 +600,7 @@ abstract contract OmniTokenInternal is
      */
     function call_ERC1363Receiver_onTransferReceived(
             address operator, address sender, address recipient, uint256 amount, bytes memory data)
+            // Use extCaller modifier for reentrancy protection
             internal extCaller returns (bool success) {
         // `recipient` must declare it implements ERC1363 recipient interface via ERC165
         string memory errMsg = "Not ERC1363 recipient";
@@ -628,6 +630,7 @@ abstract contract OmniTokenInternal is
      */
     function call_ERC4524TokensRecipient_onERC20Received(
             address operator, address sender, address recipient, uint256 amount, bytes memory data)
+            // Use extCaller modifier for reentrancy protection
             internal extCaller returns (bool success) {
         // Sending to an EOA always succeeds, by falling through to the return statement
         if (isContract(recipient)) {
@@ -647,7 +650,46 @@ abstract contract OmniTokenInternal is
         // and the function returned the correct value.
         return true;
     }
-    
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Send ETH to address
+
+    /**
+     * @dev Send an amount of ETH to a given address.
+     *
+     * @param recipient The address to send ETH to.
+     * @param amountETH The amount of ETH (in wei) to send to the recipient.
+     * @param errorMessageOnFail The error message to revert with if the ETH payment couldn't be sent,
+     *              or empty if the transaction should not revert if the attempt to send ETH fails.
+     *              If `errorMessageOnFail` is empty and the attempt to send ETH fails, then `sendETH` will
+     *              return the `(false, returnData)` from the call.
+     * @return success `true` if the send succeeded, or `false` if `errorMessageOnFail` is empty and the send failed.
+     * @return returnData Any data returned from a failed call, if `success == false`.
+     */
+    function sendETH(address recipient, uint256 amountETH, string memory errorMessageOnFail)
+            // Use extCaller modifier for reentrancy protection
+            internal extCaller returns (bool success, bytes memory returnData) {
+        require(recipient != address(0), "Bad recipient");
+        if (amountETH > 0) {
+            // Calls the `receive` or `fallback` function with the specified amount of ETH (if a contract).
+            // For contracts, the argument of "" delivers a zero-length payload to the call. Function calls
+            // must be at least 4 bytes long, for the function selector. Solidity 0.6.0 and above will
+            // call the `receive()` function if `msg.data.length == 0`, otherwise they will call the
+            // `fallback()` function if `msg.data.length > 0` or there is no `receive()` function defined.
+            // If there is no `receive()` or `fallback()` function defined, and the recipient is a contract,
+            // then send will revert. For contracts compiled on older versions of solidity, zero-length
+            // payloads will simply trigger the `fallback()` function -- there is no `receive()` function.
+            // `call` automatically succeeds if the recipient is an EOA.
+            (success, returnData) = recipient.call{value: amountETH}("");
+            if (!success && bytes(errorMessageOnFail).length > 0) {
+                // Only revert with message if the message is not empty
+                revert(errorMessageOnFail);
+            }
+        } else {
+            return (true, "");
+        }
+    }
+
     // -----------------------------------------------------------------------------------------------------------------
     // Permitting
     
@@ -668,7 +710,7 @@ abstract contract OmniTokenInternal is
     function checkPermit(uint256 deadline, bytes32 keccak256ABIEncoding,
             uint8 v, bytes32 r, bytes32 s, address requiredSigner) internal view {
         // solhint-disable-next-line not-rely-on-time
-        require(block.timestamp <= deadline, "Cert expired");
+        require(block.timestamp <= deadline, "Expired");
 
         // From:
         // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/ECDSA.sol
@@ -684,15 +726,15 @@ abstract contract OmniTokenInternal is
         // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
         // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
         // these malleable signatures as well.
-        require(uint256(s) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, "Bad sig s val");
-        require(v == 27 || v == 28, "Bad sig v val");
+        require(uint256(s) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+                && (v == 27 || v == 28), "Bad sig");
 
         // Recover address of signer from digest, and check it matches the required signer (the token holder)
         // The \x19 prefix is part of the Recursive Length Prefix (RLP) encoding:
         // https://blog.ricmoo.com/verifying-messages-in-solidity-50a94f82b2ca
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), keccak256ABIEncoding));
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress != address(0) && recoveredAddress == requiredSigner, "Invalid sig");
+        require(recoveredAddress != address(0) && recoveredAddress == requiredSigner, "Bad sig");
     }
 }
 

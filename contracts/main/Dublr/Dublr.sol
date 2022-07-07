@@ -271,7 +271,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * than the available gas when the function is called, then the transaction will revert with
      * "Sell order too small".
      *
-     * If a sell order is bought by a buyer, a market maker fee of 0.1% is deducted from the sale price of the
+     * If a sell order is bought by a (buyer, a market maker fee of 0.1% is deducted from the sale price of the
      * tokens before the remaining ETH amount is sent to the seller. This market maker fee is non-refundable.
      *
      * Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller account
@@ -352,50 +352,7 @@ contract Dublr is DublrInternal, IDublrDEX {
     SellerPayment[] private amountToSendToSellers;
 
     /**
-     * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the ETH `payableAmount`/`value`
-     * sent with the transaction, optionally disabling minting.
-     *
-     * @dev A payable function that exchanges the ETH value attached to the transaction for DUBLR tokens.
-     *
-     * The ETH amount exchanged for DUBLR tokens is `payableAmount`, if calling `buy()` from EtherScan, or
-     * `value`/`msg.value`, if calling `buy()` from Javascript, Solidity, or a dapp.
-     *
-     * If there are sell orders in the orderbook that are listed at a cheaper price than the current mint price,
-     * and `allowBuying == true` then the sell orders will be purchased first in increasing order of price, until
-     * ETH funds run out or the mint price is reached. Then if `allowMinting == true`, new coins are minted at the
-     * current mint price, increasing the total supply.
-     *
-     * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be purchased from sell orders or minted,
-     * otherwise the transaction will revert with "Too much slippage" (this is to prevent slippage due to sudden
-     * market changes, particularly sell order cancelations).
-     *
-     * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
-     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop and the remaining (unspent) ETH
-     * balanced will be refunded, with an `OutOfGasForBuyingSellOrders` event and a `RefundChange` event emitted.
-     *
-     * The `buy()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
-     * the 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
-     * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
-     * If minting new tokens, then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
-     * will be minted at the current mint price. Market taker fees and minting fees are non-refundable.
-     *
-     * Change is sent back to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
-     * price (after fee deduction), and a `RefundChange` event is emitted. The buyer must therefore be able to receive
-     * ETH payments: the buyer account must either be a non-contract wallet (an EOA), or a contract that implements
-     * one of the payable `receive()` or `fallback()` functions to receive payment.
-     *
-     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
-     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
-     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer and a `RefundChange`
-     * event emitted.
-     *
-     * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
-     * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
-     * the laws of any legal jurisdiction in which you hold or use the Dublr token.
-     * 
-     * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
-     * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
-     * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
+     * @dev Buy sell orders and then mint new tokens.
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
      *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
@@ -407,10 +364,15 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @param allowMinting If `true`, allow the minting of new tokens at the current mint price. This parameter is
      *      available because the mint price grows exponentially, and it is possible you may not want to trigger the 
      *      minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
+     * @return amountToRefundToBuyerETHWEI The amount of ETH to refund to the buyer.
+     * @return amountToSendToSellersCopy The amount(s) of ETH to send to the sellers.
      */
-    function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
-            public payable override(IDublrDEX) stateUpdater {
-        
+    function buyUpdatingState(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
+            // Modified with stateUpdater for reentrancy protection
+            private stateUpdater
+            returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) {
+        uint256 initialGas = gasleft();
+                
         // Up to 90% of the gas can be used for buying sell orders, leaving a minimum of 10% of the gas for
         // the rest of this function, including minting. (Buying sell orders is an expensive operation, since
         // it can involve manipulating the heap, potentially removing the root node of the heap for many
@@ -419,7 +381,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Buying sell orders will terminate when the amount of gas remaining falls below buySellOrderMinGasLimit,
         // to prevent a DoS (gas exhaustion) attack on the exchange. Instead, if the remaining gas falls below
         // this limit, buying of sell orders will stop, and an OutOfGasForBuyingSellOrders event will be emitted.
-        uint256 buySellOrdersMinGasLimit = gasleft() / 10;
+        uint256 buySellOrdersMinGasLimit = initialGas / 10;
 
         // The buyer is the caller
         address buyer = msg.sender;
@@ -436,8 +398,8 @@ contract Dublr is DublrInternal, IDublrDEX {
         // `_owner_enableMinting(false)`, or has been disallowed by the user by passing in `allowMinting == false`.
         uint256 mintPriceETHPerDUBLR_x1e9 = mintingEnabled && allowMinting ? mintPrice() : 0;
 
-        // Amount of ETH to refund to buyer, and amounts to send to sellers at end of transaction
-        uint256 amountToRefundToBuyerETHWEI = 0;
+        // Amount of ETH to refund to (buyer, and amounts to send to sellers at end of transaction
+        amountToRefundToBuyerETHWEI = 0;  // Return param
         assert(amountToSendToSellers.length == 0);  // Sanity check
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
@@ -450,12 +412,13 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
                 // or until we run out of orders.
                 && buyOrderRemainingETHWEI > 0 && orderBook.length > 0) {
-                
+                        
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
 
             // Stop iterating through sell orders once the order price is above the current mint price.
-            if (mintPriceETHPerDUBLR_x1e9 > 0 && sellOrder.priceETHPerDUBLR_x1e9 > mintPriceETHPerDUBLR_x1e9) {
+            if (mintPriceETHPerDUBLR_x1e9 > 0
+                    && sellOrder.priceETHPerDUBLR_x1e9 > mintPriceETHPerDUBLR_x1e9) {
                 break;
             }
             
@@ -619,9 +582,10 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Only mint if the number of DUBLR tokens to mint is at least 1
             if (amountToMintDUBLRWEI > 0) {
                 // Mint this number of DUBLR tokens for buyer (msg.sender).
-                // Call the `extCallerDenied` version to ensure that _mint cannot call out to external contracts,
-                // so that Checks-Effects-Interactions is followed (since we're still updating state).
-                __mint_extCallerDenied(buyer, buyer, amountToMintDUBLRWEI, "", "");
+                // Call the `__mint` version rather than the `_mint` version to ensure that the minting function
+                // cannot call out to external contracts, so that Checks-Effects-Interactions is followed (since
+                // we're still updating state).
+                __mint(buyer, buyer, amountToMintDUBLRWEI, "", "");
 
                 // Keep track of total tokens bought or minted
                 totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;
@@ -655,56 +619,120 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Protect against slippage: -----------------------------------------------------------------------------------
         
         require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI, "Too much slippage");
+
+        // Finalize state: ---------------------------------------------------------------------------------------------
+
+        // In order to prevent the opportunity for reentrancy attacks, a copy of the amountToSendToSellers array
+        // is made in order to ensure amountToSendToSellers is emptied before any sendETH call to external contracts
+        // (otherwise looping through the amountToSendToSellers array to send payments to sellers would mix state
+        // updates with calling external contracts, breaking the Checks-Effects-Interactions pattern).
+        uint256 numSellers = amountToSendToSellers.length;
+        amountToSendToSellersCopy = new SellerPayment[](numSellers);  // Return param
+        for (uint256 i = 0; i < numSellers; ) {
+            amountToSendToSellersCopy[i] = amountToSendToSellers[i];
+            unchecked { ++i; }  // Save gas
+        }
+        delete amountToSendToSellers;  // Clear storage array, so that it is always clear at the end of buy()
+    }
+
+    /**
+     * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the ETH `payableAmount`/`value`
+     * sent with the transaction, optionally disabling minting.
+     *
+     * @dev A payable function that exchanges the ETH value attached to the transaction for DUBLR tokens.
+     *
+     * The ETH amount exchanged for DUBLR tokens is `payableAmount`, if calling `buy()` from EtherScan, or
+     * `value`/`msg.value`, if calling `buy()` from Javascript, Solidity, or a dapp.
+     *
+     * If there are sell orders in the orderbook that are listed at a cheaper price than the current mint price,
+     * and `allowBuying == true` then the sell orders will be purchased first in increasing order of price, until
+     * ETH funds run out or the mint price is reached. Then if `allowMinting == true`, new coins are minted at the
+     * current mint price, increasing the total supply.
+     *
+     * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be purchased from sell orders or minted,
+     * otherwise the transaction will revert with "Too much slippage" (this is to prevent slippage due to sudden
+     * market changes, particularly sell order cancelations).
+     *
+     * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
+     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop and the remaining (unspent) ETH
+     * balanced will be refunded, with an `OutOfGasForBuyingSellOrders` event and a `RefundChange` event emitted.
+     *
+     * The `buy()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
+     * the 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
+     * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
+     * If minting new tokens, then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
+     * will be minted at the current mint price. Market taker fees and minting fees are non-refundable.
+     *
+     * Change is sent back to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
+     * price (after fee deduction), and a `RefundChange` event is emitted. The buyer must therefore be able to receive
+     * ETH payments: the buyer account must either be a non-contract wallet (an EOA), or a contract that implements
+     * one of the payable `receive()` or `fallback()` functions to receive payment.
+     *
+     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
+     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
+     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer and a `RefundChange`
+     * event emitted.
+     *
+     * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
+     * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
+     * the laws of any legal jurisdiction in which you hold or use the Dublr token.
+     * 
+     * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
+     * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
+     * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
+     *
+     * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
+     *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
+     *      bought or minted by the time all ETH funds of the transaction have been expended, then the transaction is
+     *      reverted and the full provided ETH amount is refunded (minus gas spent, since this is not refundable).
+     *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
+     *      transaction is pending.
+     * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
+     * @param allowMinting If `true`, allow the minting of new tokens at the current mint price. This parameter is
+     *      available because the mint price grows exponentially, and it is possible you may not want to trigger the 
+     *      minting of new tokens at an exorbitant price well above the current market price of the DUBLR token.
+     */
+    function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
+            public payable override(IDublrDEX) {
+
+        // Function modified with `stateUpdater`
         
-        // Transfer ETH from buyer to seller, and ETH fees to owner: ---------------------------------------------------
+        (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) =
+                buyUpdatingState(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
+
+        // Transfer ETH from buyer to seller, and ETH fees to owner (`sendETH` is an `extCaller` function): -------
+
+        // All state changes in this function happen before this point, and all interactions (`sendETH`) happen
+        // after this point, in order to follow the "Checks-Effects-Interactions" pattern for reentrancy protection
         
         // Send any pending ETH payments to sellers
         uint256 totalSentToSellersAndBuyerETHWEI = 0;
-        uint256 numSellers = amountToSendToSellers.length;
-        if (numSellers > 0) {
-            // In order to prevent the opportunity for reentrancy attacks, a copy of the amountToSendToSellers array
-            // is made here in order to ensure amountToSendToSellers is emptied before any sendETH call to external
-            // contracts (otherwise looping through the amountToSendToSellers array to send payments to sellers would
-            // mix state updates with calling external contracts, breaking the Checks-Effects-Interactions pattern).
-            SellerPayment[] memory amountToSendToSellersCopy = new SellerPayment[](numSellers);
-            for (uint256 i = 0; i < numSellers; ) {
-                amountToSendToSellersCopy[i] = amountToSendToSellers[i];
-                unchecked { ++i; }  // Save gas
+        uint256 numSellers = amountToSendToSellersCopy.length;
+        for (uint256 i = 0; i < numSellers; ) {
+            SellerPayment memory sellerPayment = amountToSendToSellersCopy[i];
+            // By attempting to send with `errorMessageOnFail == ""`, if sending fails, then instead of reverting,
+            // sendETH will return false. We need to catch this case, because otherwise, a seller could execute
+            // a DoS on the DEX by refusing to accept ETH payments, since every buy attempt would fail. Due to
+            // Checks-Effects-Interactions, we can't go back at this point and just cancel the seller's order
+            // -- all state has to have already been finalized. We also can't cancel the buy order, because
+            // this is not the buyer's fault. Therefore, it is the seller's responsibility to ensure that they
+            // can receive ETH payments, and as noted in the documentation for the `sell` function, if they
+            // can't or won't accept ETH payment, they forfeit the payment.
+            (bool success, bytes memory returnData) =
+                    sendETH(sellerPayment.seller, sellerPayment.amountETHWEI, /* errorMessageOnFail = */ "");
+            if (success) {
+                // sellerPayment.amountETHWEI was sent to seller
+                totalSentToSellersAndBuyerETHWEI += sellerPayment.amountETHWEI;
+            } else {
+                // if (!success), then payment is forfeited and sent to owner, because seller does not accept
+                // ETH, and we must prevent seller from being able to attack the exchange by causing all `buy()`
+                // calls to revert. Log this case.
+                // (Disable Slither static analyzer warning, there is no way to emit this event before all
+                // external function calls are made)
+                // slither-disable-next-line reentrancy-events
+                emit Unpayable(sellerPayment.seller, sellerPayment.amountETHWEI, returnData);
             }
-            delete amountToSendToSellers;  // Clear storage array, so that it is always clear at the end of buy()
-
-            // --------------------------------------------------------------------------------------------------------
-            // All state changes in this function happen before this point, and all interactions (`sendETH`) happen
-            // after this point, in order to follow the "Checks-Effects-Interactions" pattern for reentrancy protection
-            // --------------------------------------------------------------------------------------------------------
-            
-            // Send ETH (from sale amount minus fees) to sellers
-            for (uint256 i = 0; i < numSellers; ) {
-                SellerPayment memory sellerPayment = amountToSendToSellersCopy[i];
-                // By attempting to send with `errorMessageOnFail == ""`, if sending fails, then instead of reverting,
-                // sendETH will return false. We need to catch this case, because otherwise, a seller could execute
-                // a DoS on the DEX by refusing to accept ETH payments, since every buy attempt would fail. Due to
-                // Checks-Effects-Interactions, we can't go back at this point and just cancel the seller's order
-                // -- all state has to have already been finalized. We also can't cancel the buy order, because
-                // this is not the buyer's fault. Therefore, it is the seller's responsibility to ensure that they
-                // can receive ETH payments, and as noted in the documentation for the `sell` function, if they
-                // can't or won't accept ETH payment, they forfeit the payment.
-                (bool success, bytes memory returnData) =
-                        sendETH(sellerPayment.seller, sellerPayment.amountETHWEI, /* errorMessageOnFail = */ "");
-                if (success) {
-                    // sellerPayment.amountETHWEI was sent to seller
-                    totalSentToSellersAndBuyerETHWEI += sellerPayment.amountETHWEI;
-                } else {
-                    // if (!success), then payment is forfeited and sent to owner, because seller does not accept
-                    // ETH, and we must prevent seller from being able to attack the exchange by causing all `buy()`
-                    // calls to revert. Log this case.
-                    // (Disable Slither static analyzer warning, there is no way to emit this event before all
-                    // external function calls are made)
-                    // slither-disable-next-line reentrancy-events
-                    emit Unpayable(sellerPayment.seller, sellerPayment.amountETHWEI, returnData);
-                }
-                unchecked { ++i; }  // Save gas
-            }
+            unchecked { ++i; }  // Save gas
         }
         
         // Send any unspent ETH change to buyer (equiv to deducting the sale amount plus fees from the amount spent)
@@ -712,7 +740,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Refund change back to buyer. Reverts if the buyer does not accept payment. (This is different than
             // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
             // shut down the whole exchange.)
-            sendETH(buyer, amountToRefundToBuyerETHWEI, "Can't give change");
+            sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't give change");
             totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
         }
         

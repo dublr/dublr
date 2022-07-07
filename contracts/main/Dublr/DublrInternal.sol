@@ -285,42 +285,6 @@ abstract contract DublrInternal is OmniToken {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Send ETH to address
-
-    /**
-     * @dev Send an amount of ETH to a given address.
-     *
-     * @param recipient The address to send ETH to.
-     * @param amountETH The amount of ETH (in wei) to send to the recipient.
-     * @param errorMessageOnFail The error message to revert with if the ETH payment couldn't be sent,
-     *              or empty if the transaction should not revert if the send fails.
-     * @return success `true` if the send succeeded, or `false` if `errorMessageOnFail` is empty and the send failed.
-     * @return returnData Any data returned from a failed call, if `success == false`.
-     */
-    function sendETH(address recipient, uint256 amountETH, string memory errorMessageOnFail)
-            // Use extCaller modifier for reentrancy protection
-            internal extCaller returns (bool success, bytes memory returnData) {
-        require(recipient != address(0), "Bad recipient");
-        if (amountETH > 0) {
-            // Calls the `receive` or `fallback` function with the specified amount of ETH (if a contract).
-            // For contracts, the argument of "" delivers a zero-length payload to the call. Function calls
-            // must be at least 4 bytes long, for the function selector. Solidity 0.6.0 and above will
-            // call the `receive()` function if `msg.data.length == 0`, otherwise they will call the
-            // `fallback()` function if `msg.data.length > 0` or there is no `receive()` function defined.
-            // If there is no `receive()` or `fallback()` function defined, and the recipient is a contract,
-            // then send will revert. For contracts compiled on older versions of solidity, zero-length
-            // payloads will simply trigger the `fallback()` function -- there is no `receive()` function.
-            // `call` automatically succeeds if the recipient is an EOA.
-            (success, returnData) = recipient.call{value: amountETH}("");
-            if (!success && bytes(errorMessageOnFail).length > 0) {
-                revert(errorMessageOnFail);
-            }
-        } else {
-            return (true, "");
-        }
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
     // Math functions
     
     /**
