@@ -91,8 +91,11 @@ abstract contract DublrInternal is OmniToken {
     /** @dev The value of ln(2)*FIXED_POINT == ln(2)*(1<<30). */
     uint256 internal constant LN2_FIXED_POINT = 0x2c5c85fe;
 
-    /** @dev The trading fee of 0.1%, = 0.001*(1<<30). */
-    uint256 internal constant TRADING_FEE_FIXED_POINT = 0x10624e;
+    /**
+     * @dev One minus the trading fee of 0.15%, = floor((1 - 0.0015) * (1 << 30)). ETH amount of an order is multiplied
+     * by this to determine how much to send to sellers.
+     */
+    uint256 internal constant SELLER_PAYMENT_FRACTION_FIXED_POINT = 0x3FE76C8B;
 
     /**
      * @dev The maximum number of sell orders that can be bought at once, to prevent uncontrolled resource consumption
@@ -316,6 +319,12 @@ abstract contract DublrInternal is OmniToken {
     /** @dev Convert DUBLR to ETH. */
     function dublrToEthRoundDown(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9) internal pure returns (uint256) {
         return dublrAmt * priceETHPerDUBLR_x1e9 / _1e9;
+    }
+    
+    /** @dev Convert DUBLR to ETH, subtracting market maker fee. */
+    function dublrToEthLessMarketMakerFeeRoundDown(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9)
+            internal pure returns (uint256) {
+        return dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT / (_1e9 * FIXED_POINT);
     }
     
     /** @dev Convert ETH to DUBLR. */

@@ -94,11 +94,13 @@ For more advanced usage, you can use any dapp, contract, or commandline library 
 
 ## Fees
 
-The market maker fee (subtracted from the sale price of sellers' tokens) is 0.1% of the sell order price. The market taker fee (charged to buyers, when they buy a sell order) is 0.1% of the sell order price. These fees are identical to Binance's non-VIP market fees. These trading fees are sent to the owner/creator of the Dublr contract. Additionally, any ETH amount paid to mint new Dublr tokens is sent to the owner/creator of the Dublr contract as a minting fee.
+The market maker fee (subtracted from the sale price of sellers' tokens, i.e. deducted from the ETH amount sent from buyer to seller) is 0.15% of the sell order price. This fee is less than the sum of the market maker fee (0.1%) plus the market taker fee (an additional 0.1%) charged by Binance's for their non-VIP trading tier (0.2% total fees per trade) and half the size of Uniswap's fees (0.3%).
 
-Fees are charged irreversibly, as the cost of services performed by the Dublr smart contract, and no refunds will be given.
+Additionally, all ETH value used to mint new tokens via the `buy()` function are charged as a minting fee, which is an irreversible exchange of ETH for DUBLR.
 
-The value in ETH of any purchased tokens can only be reclaimed by selling the Dublr tokens on the built-in DEX, or on another DEX such as UniSwap. Selling tokens may incur losses, as the exchange rate fluctuates due to market forces.
+Fees are sent to the owner/creator of the Dublr contract. Fees are charged irreversibly, as the cost of services performed by the Dublr smart contract, and no refunds will be given.
+
+The value in ETH of any purchased tokens can only be reclaimed by selling the Dublr tokens on the built-in DEX, or on another DEX such as UniSwap. Selling tokens may incur losses, as the exchange rate fluctuates due to market forces. No promise of increase in value or return on investment, and no promise of avoidance of loss or damage, is made or implied by the owner/creator of the Dublr contract. (See next section.)
 
 # LEGAL AGREEMENT AND DISCLAIMERS
 

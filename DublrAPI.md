@@ -63,7 +63,7 @@ function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external;
 
 Lists `amountDUBLRWEI` DUBLR tokens (measured in DUBLR wei, where 1 DUBLR = `10^18` DUBLR wei) for sale, at a price of `priceETHPerDUBLR_x1e9 * 10^-9` ETH tokens per DUBLR token.
 
-When tokens are listed for sale, `amountDUBLRWEI` tokens are deducted from the seller's balance. The listed tokens are returned to the seller's balance if the seller cancels the order. The listed tokens are moved to the buyer's balance if a buyer buys the order, minus market fees. Buyers may buy part or all of an active sell order.
+When tokens are listed for sale, `amountDUBLRWEI` tokens are deducted from the seller's balance. The listed tokens are returned to the seller's balance if the seller cancels the order. The listed tokens are moved to the buyer's balance if a buyer buys the order. Buyers may buy part or all of an active sell order.
 
 A caller may have only one active sell order at a time. If a seller already has an existing sell order, and they call `sell` again, the existing sell order will automatically be canceled via `cancelMySellOrder()` before the new order is placed.
 
@@ -71,7 +71,7 @@ If `sellOrder.priceETHPerDUBLR_x1e9 < mintPrice()` then it is possible for a buy
 
 Note that if you list tokens for sale, the address from which you call `sell(price, amount)` MUST be able to accept ETH payments upon sale of the listed tokens -- in other words, the seller address must be a regular wallet (an Externally-Owned Account or EOA), or it must be a contract that has a `payable` function that is triggered on an empty data payload (`receieve` or `fallback`). If the seller address is a contract and it rejects ETH payment by either not defining one of these functions, or the function reverts, then the payment is considered forfeited, because if the Dublr DEX allowed sellers to revert any buyer's transaction, this would allow the seller to execute a denial of service attack, preventing buyers from using the DEX.
 
-Note that a market maker fee of 0.1% is subtracted from the ETH order amount sent to the seller, when a buyer buys a sell order that is listed on the built-in decentralized exchange (DEX).
+Note that a market maker fee of 0.15% is subtracted from the ETH order amount sent to the seller, when a buyer buys a sell order that is listed on the built-in decentralized exchange (DEX).
 
 ### Getting caller's current sell order
 
@@ -124,13 +124,13 @@ function buy(bool allowMinting) external payable;
 
 Buys as many tokens as can be afforded given the payable ETH value of the function call. Sell orders are purchased in increasing order of price, until the current mint price is reached, at which point any remaining ETH balance is used to mint tokens at the current mint price. Optionally, minting can be disabled by calling `buy(false)`.
 
-If a buyer buys DUBLR tokens from a sell order, the DUBLR tokens are transferred from the orderbook to the buyer, and the ETH equivalent is transferred from the buyer to the seller, minus market fees.
+If a buyer buys DUBLR tokens from a sell order, the DUBLR tokens are transferred from the orderbook to the buyer, and the ETH equivalent is transferred from the buyer to the seller, minus market maker fees (effectively charged to the seller, not the buyer).
 
-Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price (after fee deduction), the buyer must be able to receive ETH payments. In other words, the buyer account must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()` or `fallback()` functions to receive payment.
+Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price, the buyer must be able to receive ETH payments. In other words, the buyer account must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()` or `fallback()` functions to receive payment.
 
 Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange` event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even multiple of the token price (i.e. change is given where appropriate).
 
-Note that a market taker fee of 0.1% is charged from the ETH order amount, on top of the price of sell orders that are bought from the built-in decentralized exchange (DEX). For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens.
+For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens.
 
 ## Owner API
 

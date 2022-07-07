@@ -48,7 +48,7 @@ contract Dublr is DublrInternal, IDublrDEX {
     // Determine the current mint price, based on block timestamp
 
     /**
-     * @notice The current mint price, in ETH per DUBLR (multiplied by `10**9`).
+     * @notice The current mint price, in ETH per DUBLR (multiplied by `10^9`).
      *
      * @dev Returns the current mint price for this token. Calls to `buy()` will buy tokens for sale
      * rather than minting new tokens, if there are tokens listed below the current mint price.
@@ -57,7 +57,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * is disabled. In practice, minting may no longer be triggered long before that time, if the supply
      * of coins for sale below the mint price exceeds demand.
      *
-     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10**9`,
+     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
      *              or zero if the minting time period has ended (after 30 doubling periods).
      */
     function mintPrice() public view returns (uint256 mintPriceETHPerDUBLR_x1e9) {
@@ -149,7 +149,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev If there are no current sell orders, reverts.
      *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *          (multiplied by `10**9`).
+     *          (multiplied by `10^9`).
      * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
      */
     function cheapestSellOrder() external view override(IDublrDEX)
@@ -165,8 +165,8 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev If the caller has no current sell order, reverts.
      *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the caller's current sell order, in ETH per DUBLR
-     *          (multiplied by `10**9`).
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10**18` DUBLR wei).
+     *          (multiplied by `10^9`).
+     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei).
      */
     function mySellOrder() external view override(IDublrDEX)
             returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
@@ -213,7 +213,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev Note that the orders are returned in min-heap order by price, and not in increasing order by price.
      *
      * @return priceAndAmountOfSellOrders A list of all sell orders in the orderbook, in min-heap order by price.
-     * Each list item is a tuple consisting of the price of each token in ETH per DUBLR (multiplied by `10**9`),
+     * Each list item is a tuple consisting of the price of each token in ETH per DUBLR (multiplied by `10^9`),
      * and the number of tokens for sale.
      */
     function allSellOrders() external view override(IDublrDEX)
@@ -258,10 +258,11 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @notice List DUBLR tokens for sale in the orderbook.
      *
      * @dev List some amount of the caller's DUBLR token balance for sale. This may be canceled any time before the
-     * tokens are purchased by a buyer.
+     * tokens are purchased by a buyer. If tokens from the order are bought by a buyer, the ETH value of the purchased
+     * tokens are sent to the seller, minus a market maker fee of 0.15%.
      *
      * During the time that tokens are listed for sale, the amount of the sell order is deducted from the token
-     * balance of the seller, to prevent double-spending. The amount is returned to the caller's token balance if
+     * balance of the seller, to prevent double-spending. The amount is returned to the seller's token balance if
      * the sell order is later canceled.
      *
      * If there is already a sell order in the order book for this sender, then that old order is automatically
@@ -272,24 +273,14 @@ contract Dublr is DublrInternal, IDublrDEX {
      * function, to ensure that the order size is not unreasonably small (small orders cost buyers a lot of gas
      * relative to the number of tokens they buy). The equivalent ETH amount of the order can be calculated as:
      * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not greater
-     * than the available gas when the function is called, then the transaction will revert with
+     * than the gas amount supplied to call the `sell()` function, then the transaction will revert with
      * "Sell order too small".
      *
-     * If a sell order is bought by a (buyer, a market maker fee of 0.1% is deducted from the sale price of the
-     * tokens before the remaining ETH amount is sent to the seller. This market maker fee is non-refundable.
-     *
-     * Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller account
-     * must be able to receive ETH payments. In other words, the seller account must either be a non-contract
+     * @notice Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller
+     * account must be able to receive ETH payments. In other words, the seller account must either be a non-contract
      * wallet (an Externally-Owned Account or EOA), or a contract that implements one of the payable `receive()`
      * or `fallback()` functions, in order to receive payment. If sending ETH to the seller fails because the
-     * seller account is a non-payable contract, then the ETH from the sale of tokens is forfeited. In other
-     * words, if you are trying to sell tokens that are owned by a non-payable contract, you MUST use a different
-     * exchange -- do not use the Dublr `sell(...)` function, because there is no way for the Dublr DEX to send
-     * you payment, and the action of the entire exchange cannot be held up by your order being unable to be
-     * fulfilled.
-     *
-     * Reverts if `priceETHPerDUBLR_x1e9 == 0` or `amountDUBLRWEI == 0`, or if `amountDUBLRWEI` is larger than the
-     * caller's DUBLR balance.
+     * seller account is a non-payable contract, then the ETH from the sale of tokens is forfeited.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
@@ -300,9 +291,11 @@ contract Dublr is DublrInternal, IDublrDEX {
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
      * @param priceETHPerDUBLR_x1e9 the price to list the tokens for sale at, in ETH per DUBLR token, multiplied
-     *          by `10**9`.
-     * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10**18` DUBLR wei).
-     *          Must be less than or equal to the caller's balance.
+     *          by `10^9`.
+     * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
+     *          Must be less than or equal to the caller's balance. Additionally,
+     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than the
+     *          ETH value of gas supplied to run the function, to ensure the order size is not tiny.
      */
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
@@ -427,28 +420,14 @@ contract Dublr is DublrInternal, IDublrDEX {
             
             // Calculate number of tokens to buy, and the price including fees: ----------------------------------------
 
-            // Save some stack space by block-scoping some variables that are only needed temporarily
-            // (otherwise the compiler complains the compiled code has run out of stack space)
-            uint256 sellOrderPriceETHPerDUBLRPlusFee_x1e9;
-            uint256 sellOrderPriceETHPerDUBLRMinusFee_x1e9;
             uint256 amountToBuyDUBLRWEI;
             {
-                // Calculate price of trading fee (0.1% of sell price) in ETH per DUBLR, multiplied by 1e9.
-                // This is charged to sellers as a market maker fee and buyers as a market taker fee.
-                // Round up to nearest integer (which rounds up to the nearest 10^-9).
-                uint256 tradingFeeETHPerDUBLR_x1e9 =
-                    divRoundUp(sellOrder.priceETHPerDUBLR_x1e9 * TRADING_FEE_FIXED_POINT, FIXED_POINT);
-                
-                // Calculate price of each token including the fee (1.001x price) and minus the fee (0.999x price)
-                sellOrderPriceETHPerDUBLRPlusFee_x1e9 = sellOrder.priceETHPerDUBLR_x1e9 + tradingFeeETHPerDUBLR_x1e9;
-                sellOrderPriceETHPerDUBLRMinusFee_x1e9 = sellOrder.priceETHPerDUBLR_x1e9 - tradingFeeETHPerDUBLR_x1e9;
-            
-                // Determine how many whole DUBLR can be purchased with the current ETH balance, at the current price
-                // of this order, including the trading fee. (Whole DUBLR => round down.)
-                uint256 amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI_inclFee =
-                        ethToDublrRoundDown(buyOrderRemainingETHWEI, sellOrderPriceETHPerDUBLRPlusFee_x1e9);
+                // Determine how many whole DUBLR can be purchased with the buyer's remaining ETH balance,
+                // at the current price of this order. (Whole DUBLR => round down.)
+                uint256 amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI =
+                        ethToDublrRoundDown(buyOrderRemainingETHWEI, sellOrder.priceETHPerDUBLR_x1e9);
 
-                if (amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI_inclFee == 0) {
+                if (amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI == 0) {
                     // The amount of DUBLR that the buyer can afford at the sell order price is less than 1 token,
                     // so the buyer can't continue buying orders (order prices in the rest of the order book, and
                     // the mint price, have to be at least as high as the current price). Stop going through order
@@ -465,29 +444,26 @@ contract Dublr is DublrInternal, IDublrDEX {
                 }
 
                 // The number of DUBLR tokens to buy from the sell order is the minimum of the order's
-                // amountDUBLRWEI (it's only possible to buy a maximum of amountDUBLRWEI tokens from this order)
-                // and amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI_inclFee (the buyer can't buy more tokens
-                // than they can afford)
-                amountToBuyDUBLRWEI = min(
-                        sellOrder.amountDUBLRWEI,
-                        amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI_inclFee);
+                // amountDUBLRWEI (it's only possible to buy a maximum of amountDUBLRWEI tokens from this
+                // order) and amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI (the buyer can't buy more
+                // tokensthan they can afford)
+                amountToBuyDUBLRWEI = min(sellOrder.amountDUBLRWEI, amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI);
             }
 
             // Given the whole number of DUBLR tokens to be purchased, calculate the ETH amount to charge buyer,
-            // including the market taker fee, and deduct the market maker fee from the amount to send the seller.
-            // (Both buyer and seller pay the same 0.1% trading fee).
+            // and deduct the market maker fee from the amount to send the seller.
             // Round up amount to charge buyer and round down amount to send seller to nearest 1 ETH wei.
             uint256 amountToChargeBuyerETHWEI = dublrToEthRoundUpClamped(
-                    amountToBuyDUBLRWEI, sellOrderPriceETHPerDUBLRPlusFee_x1e9,
+                    amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9,
                     // Clamping shouldn't be needed, but to guarantee safe rounding up,
                     // clamp amount to available balance
                     buyOrderRemainingETHWEI);
             // Invariant: amountToChargeBuyerETHWEI <= buyOrderRemainingETHWEI
 
             // Convert the number of DUBLR tokens bought into an ETH balance to send to seller, after subtracting
-            // the market maker fee.
-            uint256 amountToSendToSellerETHWEI = dublrToEthRoundDown(
-                    amountToBuyDUBLRWEI, sellOrderPriceETHPerDUBLRMinusFee_x1e9);
+            // the trading fee.
+            uint256 amountToSendToSellerETHWEI =
+                    dublrToEthLessMarketMakerFeeRoundDown(amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9);
 
             // Transfer DUBLR from sell order to buyer: ----------------------------------------------------------------
 
@@ -647,41 +623,31 @@ contract Dublr is DublrInternal, IDublrDEX {
 
     /**
      * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the ETH `payableAmount`/`value`
-     * sent with the transaction, optionally disabling minting.
+     * sent with the transaction.
      *
      * @dev A payable function that exchanges the ETH value attached to the transaction for DUBLR tokens.
      *
-     * The ETH amount exchanged for DUBLR tokens is `payableAmount`, if calling `buy()` from EtherScan, or
-     * `value`/`msg.value`, if calling `buy()` from Javascript, Solidity, or a dapp.
+     * Buys tokens listed for sale, if any sell orders are listed below the mint price and `allowBuying == true`.
+     * Sell orders are purchased in increasing order of price, until the supplied ETH amount runs out or the mint price
+     * is reached. Then this function will mint new tokens at the current mint price with the remaining ETH balance, if
+     * `allowMinting == true`, increasing total supply.
      *
-     * If there are sell orders in the orderbook that are listed at a cheaper price than the current mint price,
-     * and `allowBuying == true` then the sell orders will be purchased first in increasing order of price, until
-     * ETH funds run out or the mint price is reached. Then if `allowMinting == true`, new coins are minted at the
-     * current mint price, increasing the total supply.
-     *
-     * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be purchased from sell orders or minted,
-     * otherwise the transaction will revert with "Too much slippage" (this is to prevent slippage due to sudden
-     * market changes, particularly sell order cancelations).
+     * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be either purchased from sell orders or minted,
+     * otherwise the transaction will revert with "Too much slippage". You can determine how many coins you expect
+     * to receive for a given ETH payable amount, by examining the order book (call `allSellOrders()` to get all
+     * orderbook entries, and then sort them in increasing order of price).
      *
      * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
-     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop and the remaining (unspent) ETH
-     * balanced will be refunded, with an `OutOfGasForBuyingSellOrders` event and a `RefundChange` event emitted.
+     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop with the order partially filled,
+     * an `OutOfGasForBuyingSellOrders` event will be emitted to signify that the order was only partially filled,
+     * the unspent ETH balance will be returned to the buyer, and a `RefundChange` event will be emitted to inform
+     * the buyer of the refund. (Note that `minimumTokensToBuyOrMintDUBLRWEI` tokens must still be bought in this
+     * partially-filled order, otherwise the transaction will instead revert with "Out of gas".)
      *
-     * The `buy()` payable function should be funded with the appropriate value of tokens to buy, in ETH, including
-     * the 0.1% market taker fee (i.e. multiply the ETH value of tokens you want to buy by 1.001, and then round up to
-     * the nearest 1 ETH wei, to cover the market taker fee, if buying sell orders from the order book).
-     * If minting new tokens, then when coins are minted, there is no need to add the market taker fee -- DUBLR tokens
-     * will be minted at the current mint price. Market taker fees and minting fees are non-refundable.
-     *
-     * Change is sent back to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
-     * price (after fee deduction), and a `RefundChange` event is emitted. The buyer must therefore be able to receive
-     * ETH payments: the buyer account must either be a non-contract wallet (an EOA), or a contract that implements
-     * one of the payable `receive()` or `fallback()` functions to receive payment.
-     *
-     * Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent
-     * uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend
-     * the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer and a `RefundChange`
-     * event emitted.
+     * Change is also refunded to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
+     * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded ETH payments for the
+     * `buy()` function to succed: the buyer account must either be a non-contract wallet (an EOA), or a contract
+     * that implements one of the payable `receive()` or `fallback()` functions to receive payment.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
