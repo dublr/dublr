@@ -264,6 +264,13 @@ contract Dublr is DublrInternal, IDublrDEX {
      * canceled before the new order is placed (there may only be one order per seller in the order book at one
      * time).
      *
+     * Note that the equivalent ETH amount of the order must be greater than the gas supplied to run this sell
+     * function, to ensure that the order size is not unreasonably small (small orders cost buyers a lot of gas
+     * relative to the number of tokens they buy). The equivalent ETH amount of the order can be calculated as:
+     * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not greater
+     * than the available gas when the function is called, then the transaction will revert with
+     * "Sell order too small".
+     *
      * If a sell order is bought by a buyer, a market maker fee of 0.1% is deducted from the sale price of the
      * tokens before the remaining ETH amount is sent to the seller. This market maker fee is non-refundable.
      *
@@ -294,9 +301,16 @@ contract Dublr is DublrInternal, IDublrDEX {
      *          Must be less than or equal to the caller's balance.
      */
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX) stateUpdater {
+        uint256 initialGas = gasleft();
+        
         require(sellingEnabled, "Selling disabled");
         require(priceETHPerDUBLR_x1e9 > 0, "Zero price");
         require(amountDUBLRWEI > 0, "Zero amount");
+
+        // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders from different
+        // addresses, by making it costly to do this. We require that the total amount of the sell order be greater than
+        // the gas required to run the sell function.
+        require(dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell order too small");
 
         // Cancel existing order, if there is one, before placing new sell order
         address seller = msg.sender;
