@@ -38,7 +38,7 @@ contract ERC777Recipient is IERC777Recipient {
         
         // Call back to msg.sender (the OmniToken contract) if reentry is enabled, to test reentrancy protection
         if (reentryEnabled) {
-            try IERC20(msg.sender).approve(sender, 1) returns (bool) {
+            try IERC20(msg.sender).transfer(sender, 1) returns (bool) {
                 revert("Reentrant call should not have succeeded");
             } catch Error(string memory reason) {
                 revert(reason);
