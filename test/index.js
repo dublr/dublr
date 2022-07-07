@@ -56,11 +56,14 @@ describe("OmniToken", () => {
   });
 
   it("ERC20: Transfer adds amount to destination account and subtracts from sender account", async () => {
+    await contract0._owner_enableTransferToContracts(false);
     await expect(contract0["transfer(address,uint256)"](contract0.address, 7))
             .to.be.revertedWith("Can't transfer to a contract");
     await contract0["transfer(address,uint256)"](wallet[1].address, 7);
     expect(await contract0.balanceOf(wallet[1].address)).to.equal(7);
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(993);
+    await contract0._owner_enableTransferToContracts(true);
+    await contract0["transfer(address,uint256)"](contract0.address, 7);
   });
 
   it("ERC20: Can transfer full balance", async () => {
@@ -101,6 +104,7 @@ describe("OmniToken", () => {
     await contract0["approve(address,uint256)"](wallet[1].address, 100);
     expect(await contract0["allowance(address,address)"](wallet[0].address, wallet[1].address))
             .to.equal(100);
+    await contract0._owner_enableChangingAllowanceWithoutZeroing(false);
     await expect(contract0["approve(address,uint256)"](wallet[1].address, 150))
             .to.be.revertedWith("Curr allowance nonzero");
     const contract1 = await contract0.connect(wallet[1]);
@@ -112,6 +116,8 @@ describe("OmniToken", () => {
     expect(await contract1.balanceOf(wallet[2].address)).to.equal(0);
     await expect(contract1.transferFrom(wallet[0].address, wallet[1].address, 100))
             .to.be.revertedWith("Insufficient allowance");
+    await contract0._owner_enableChangingAllowanceWithoutZeroing(true);
+    await contract0["approve(address,uint256)"](wallet[1].address, 150);
   });
 
   it("ERC20: Set allowance and send to other wallet", async () => {
@@ -136,6 +142,7 @@ describe("OmniToken", () => {
   it("ERC20: Unlimited allowance", async () => {
     const contract1 = await contract0.connect(wallet[1]);
     const unlimited = ethers.constants.MaxUint256;
+    await contract0._owner_enableUnlimitedAllowances(false);
     await expect(contract0["approve(address,uint256)"](wallet[1].address, unlimited))
             .to.be.revertedWith("Unlimited allowance disabled");
     await expect(contract1._owner_enableUnlimitedAllowances(true)).to.be.revertedWith("Not owner");
@@ -151,6 +158,8 @@ describe("OmniToken", () => {
             .to.be.revertedWith("Unlimited allowance");
     await expect(contract0.decreaseAllowance(wallet[1].address, 100))
             .to.be.revertedWith("Unlimited allowance");
+    await contract0._owner_enableUnlimitedAllowances(true);
+    await contract0["approve(address,uint256)"](wallet[1].address, unlimited);
   });
 
   it("ERC20 extension: increaseAllowance / decreaseAllowance", async () => {
@@ -186,9 +195,10 @@ describe("OmniToken", () => {
     const contract1 = await contract0.connect(wallet[1]);
     const block = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
     const timeBefore = block.timestamp;
+    await contract0._owner_setDefaultAllowanceExpirationSec(3600);
     await contract0["approve(address,uint256,uint256)"](wallet[1].address, 0, 100);
     const expInfo0 = await contract0.allowanceWithExpiration(wallet[0].address, wallet[1].address);
-    // Dublr default allowance expiry time is 3600 sec
+    // Default allowance expiry time is 3600 sec
     expect(expInfo0.expirationTimestamp - timeBefore).to.be.closeTo(3600, 2);
     await contract1.transferFrom(wallet[0].address, wallet[2].address, 50);
     // Advance (3600 - 10) seconds

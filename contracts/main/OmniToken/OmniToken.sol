@@ -52,14 +52,15 @@ contract OmniToken is OmniTokenInternal {
      * timestamps increase monotonically), so do not use an allowance expiration time of less than 15 seconds.
      *
      * @dev Call `_owner_setDefaultAllowanceExpirationSec(type(uint256).max)` as the contract owner
-     * if you want allowances to not expire, for backwards compatibility with ERC20.
+     * if you want allowances never to expire, for backwards compatibility with ERC20, or pass a smaller
+     * number to expire all allowances after that number of seconds by default.
      */
-    uint256 public defaultAllowanceExpirationSec = 3600;
+    uint256 public defaultAllowanceExpirationSec = UNLIMITED_EXPIRATION;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
-     * @dev Set the default number of seconds that an allowance is valid for (default: 3600). Set this to
+     * @dev Set the default number of seconds that an allowance is valid for. Set this to
      * `type(uint256).max == 2**256-1` if you want allowances never to expire, for backwards compatibility
      * with ERC20.
      *
@@ -876,7 +877,7 @@ contract OmniToken is OmniTokenInternal {
      * @param operator The operator to authorize.
      */
     function authorizeOperator(address operator) external erc777 override(IERC777) {
-        require(operator != msg.sender, "Can't authorize self");
+        require(operator != msg.sender, "Can't auth self");
         if (isDefaultOperator[operator]) {
             isRevokedDefaultOperatorFor[operator][msg.sender] = false;
         } else {

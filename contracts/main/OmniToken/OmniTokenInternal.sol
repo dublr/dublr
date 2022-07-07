@@ -68,6 +68,9 @@ abstract contract OmniTokenInternal is
 
         // There must be an ERC1820 registry deployed on the network for ERC777
         require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
+        
+        // Register thet ERC165 interface with itself
+        registerInterfaceViaERC165(type(IERC165).interfaceId, true);
 
         // Enable and register interfaces
         _owner_enableERC20(true);
@@ -75,6 +78,7 @@ abstract contract OmniTokenInternal is
         _owner_enableERC1363(true);
         _owner_enableERC4524(true);
         _owner_enableEIP2612(true);
+        
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -326,17 +330,26 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if unlimited allowance is enabled. (Disabled by default for security reasons.) */
-    bool internal _unlimitedAllowancesEnabled = false;
+    /**
+     * @dev true if unlimited allowance is enabled.
+     */
+    bool internal _unlimitedAllowancesEnabled = true;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
+     *
      * @dev Enable/disable unlimited allowances.
-     * Note that enabling this can be dangerous, $120M was stolen in the BADGER frontend injection attack
-     * due to unlimited allowances. Consequently, this is disabled by default.
+     *
+     * Note that having unlimited allowances enabled can be dangerous, $120M was stolen in the BADGER frontend
+     * injection attack due to unlimited allowances.
+     *
+     * Disabling this causes an allowance amount of `type(uint256).max` to be rejected, which is not strictly
+     * ERC20 compatible.
      * 
      * See: https://kalis.me/unlimited-erc20-allowances/
      *      https://rekt.news/badger-rekt/
+     *
+     * @param enable Whether to enable unlimited allowances.
      */
     function _owner_enableUnlimitedAllowances(bool enable) external ownerOnly {
         _unlimitedAllowancesEnabled = enable;
@@ -344,19 +357,23 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if ERC20 transfer to smart contracts is enabled. (Disabled by default for security reasons.) */
-    bool internal _transferToContractsEnabled = false;
+    /** @dev true if ERC20 transfer to smart contracts is enabled. */
+    bool internal _transferToContractsEnabled = true;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
+     *
      * @dev Enable/disable ERC20 transfer to smart contracts. Note that enabling this can be dangerous:
      * millions have been lost in the Ethereum ecosystem due to users accidentally transferring tokens
      * to a smart contract rather than an EOA wallet, since smart contracts generally aren't
      * set up to function as wallets, and contract code generally can't be changed to recover
-     * lost tokens. Consequently, transfers to contracts are disabled by default. This is not ERC20
-     * compatible, but it's much safer).
+     * lost tokens.
+     *
+     * Disabling this is not ERC20 compatible, but it's much safer.
      * 
      * See: https://101blockchains.com/erc20-vs-erc223-vs-erc777/
+     *
+     * @param enable Whether to enable transfer of tokens to non-EOA addresses (contracts).
      */
     function _owner_enableTransferToContracts(bool enable) external ownerOnly {
         _transferToContractsEnabled = enable;
@@ -366,23 +383,24 @@ abstract contract OmniTokenInternal is
 
     /**
      * @dev true if ERC20 allows setting allowances from a non-zero value to another non-zero value.
-     * (Disabled by default for security reasons.)
      */
-    bool internal _changingAllowanceWithoutZeroingEnabled = false;
+    bool internal _changingAllowanceWithoutZeroingEnabled = true;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
      * @dev Enable/disable the ability of the ERC20 `approve` function to approve a non-zero allowance when the
-     * allowance is already non-zero. This is disabled by default, to prevent the well-known allowance race
-     * condition vulnerability in ERC20. This default is not ERC20-compatible, but it's much safer.
+     * allowance is already non-zero.
+     *
+     * Disabling this prevents the well-known allowance race condition vulnerability in ERC20, which is not
+     * ERC20-compatible behavior, but it's much safer.
      *
      * See: https://github.com/guylando/KnowledgeLists/blob/master/EthereumSmartContracts.md
      *
      * @param enable Whether to enable changing allowances without first setting them to zero.
      */
     function _owner_enableChangingAllowanceWithoutZeroing(bool enable) external ownerOnly {
-        _transferToContractsEnabled = enable;
+        _changingAllowanceWithoutZeroingEnabled = enable;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -421,14 +439,14 @@ abstract contract OmniTokenInternal is
      * @return implementsInterface `true` if this contract implements the requested interface.
      */
     function supportsInterface(bytes4 interfaceId) external view override(IERC165) returns (bool implementsInterface) {
-        return interfaceId == 0x01ffc9a7 ? true // Required by ERC165 (the ERC165 interfaceId itself)
-        : interfaceId == 0xffffffff ? false  // Required by ERC165
-        : _supportedInterfaces[interfaceId];
+        return _supportedInterfaces[interfaceId];
     }
 
     /** @dev Register a supported interface via ERC165. */
     function registerInterfaceViaERC165(bytes4 interfaceId, bool supported) internal {
-        _supportedInterfaces[interfaceId] = supported;
+        if (interfaceId != 0xffffffff) {  // ERC165 does not allow registering this interfaceId
+            _supportedInterfaces[interfaceId] = supported;
+        }
     }
 
     /**
