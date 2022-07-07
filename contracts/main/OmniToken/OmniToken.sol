@@ -1324,7 +1324,7 @@ contract OmniToken is OmniTokenInternal {
         // Safety is guaranteed by the erc4524 function modifier, which sets _erc4524CallDepth,
         // which requires _transfer to successfully notify the ERC4524 recipient
         _transfer(/* operator = */ msg.sender, holder, recipient, amount, /* useAllowance = */ true, data, "");
-        return false;
+        return true;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
