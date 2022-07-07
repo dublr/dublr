@@ -149,9 +149,9 @@ contract OmniToken is OmniTokenInternal {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Core internal state management functions (modified with `stateUpdater` to prevent these functions being
+    // Core internal state update functions (modified with `stateUpdater` to prevent these functions being
     // called reentrantly, deeper in the stack than a function modified by `extCaller`, and to ensure that these
-    // functions are not accidentally modified to call an `extCaller` function.
+    // functions are not accidentally modified to call an `extCaller` function).
 
     /**
      * @dev Mint `amount` tokens into `account`.
@@ -385,8 +385,7 @@ contract OmniToken is OmniTokenInternal {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Core account state management functions.
-    // Modified with `stateUpdater` so that these cannot be called reentrantly.
+    // Core account management functions, called by the public API.
 
     /**
      * @dev Mint `amount` tokens into `account`.
