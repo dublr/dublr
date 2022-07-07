@@ -406,6 +406,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
+        bool ranOutOfGasForBuyingSellOrders = false;
         while (
                 // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
                 // buying stage. This allows exchange function to be shut down or disabled if necessary without
@@ -535,10 +536,13 @@ contract Dublr is DublrInternal, IDublrDEX {
             if (gasleft() < buySellOrdersMinGasLimit) {
                 // Ran out of gas for buying sell orders --  prevent uncontrolled resource consumption DoS attacks.
                 // See: https://swcregistry.io/docs/SWC-128
-                
+
+                // Record that we ran out of gas so we can revert with an appropriate message if necessary                
+                ranOutOfGasForBuyingSellOrders = true;
+
                 // Emit event
                 emit OutOfGasForBuyingSellOrders(buyer, buyOrderRemainingETHWEI, totBoughtOrMintedDUBLRWEI);
-
+                
                 // Stop processing sell orders, and also do not fall through to minting (since there may be a big
                 // jump in price between the current order's sell price and the mint price). The remaining ETH
                 // balance must be refunded as-is.
@@ -620,7 +624,11 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // Protect against slippage: -----------------------------------------------------------------------------------
         
-        require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI, "Too much slippage");
+        // Require that the number of tokens bought or minted met or exceeded the minimum purchase amount
+        require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI,
+                // If buyer ran out of gas for buying sell orders, then this should be reported rather than that
+                // there was too much slippage.
+                ranOutOfGasForBuyingSellOrders ? "Out of gas" : "Too much slippage");
 
         // Finalize state: ---------------------------------------------------------------------------------------------
 
