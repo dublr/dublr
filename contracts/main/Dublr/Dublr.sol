@@ -188,7 +188,9 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev Restores the remaining (unfulfilled) amount of the caller's sell order back to the seller's
      * token balance. If the caller has no current sell order, reverts.
      */
-    function cancelMySellOrder() public override(IDublrDEX) stateUpdater {
+    function cancelMySellOrder() public override(IDublrDEX)
+            // Modified with stateUpdater for reentrancy protection
+            stateUpdater {
         // Determine the heap index of the sender's current sell order, if any
         uint256 heapIdxPlusOne = sellerToHeapIdxPlusOne[msg.sender];
         require(heapIdxPlusOne > 0, "No sell order");
@@ -235,7 +237,9 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev Cancel all sell orders (in case of emergency).
      * Restores the remaining (unfulfilled) amount of each sell order back to the respective seller's token balance.
      */
-    function _owner_cancelAllSellOrders() external stateUpdater ownerOnly {
+    function _owner_cancelAllSellOrders() external
+            // Modified with stateUpdater for reentrancy protection
+            stateUpdater ownerOnly {
         while (orderBook.length > 0) {
             uint256 heapIdx;
             unchecked { heapIdx = orderBook.length - 1; }  // Save gas
@@ -300,7 +304,9 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10**18` DUBLR wei).
      *          Must be less than or equal to the caller's balance.
      */
-    function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX) stateUpdater {
+    function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
+            // Modified with stateUpdater for reentrancy protection
+            stateUpdater {
         uint256 initialGas = gasleft();
         
         require(sellingEnabled, "Selling disabled");
@@ -351,7 +357,8 @@ contract Dublr is DublrInternal, IDublrDEX {
     SellerPayment[] private amountToSendToSellers;
 
     /**
-     * @dev Buy sell orders and then mint new tokens.
+     * @dev Buy sell orders and then mint new tokens. Updates state of the contract, but does not call external
+     * contracts (i.e. does not call `sendETH`).
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
      *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
@@ -366,7 +373,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @return amountToRefundToBuyerETHWEI The amount of ETH to refund to the buyer.
      * @return amountToSendToSellersCopy The amount(s) of ETH to send to the sellers.
      */
-    function buyUpdatingState(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
+    function _buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             // Modified with stateUpdater for reentrancy protection
             private stateUpdater
             returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) {
@@ -695,15 +702,14 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         require(msg.value > 0, "Zero payment");
 
-        // Function modified with `stateUpdater`
+        // CHECKS / EFFECTS / EVENTS:
         
         (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) =
-                buyUpdatingState(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
+                _buy(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
 
-        // Transfer ETH from buyer to seller, and ETH fees to owner (`sendETH` is an `extCaller` function): -------
+        // INTERACTIONS:
 
-        // All state changes in this function happen before this point, and all interactions (`sendETH`) happen
-        // after this point, in order to follow the "Checks-Effects-Interactions" pattern for reentrancy protection
+        // Transfer ETH from buyer to seller, and ETH fees to owner (`sendETH` is an `extCaller` function)
         
         // Send any pending ETH payments to sellers
         uint256 totalSentToSellersAndBuyerETHWEI = 0;
@@ -738,7 +744,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Refund any unspent ETH back to buyer. Reverts if the buyer does not accept payment. (This is different than
         // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
         // shut down the whole exchange.)
-        sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't give change");
+        sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't refund change");
         totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
         
         // Send any remaining ETH (trading fees + minting fees) to owner

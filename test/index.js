@@ -880,7 +880,7 @@ describe("Dublr", () => {
     // Can buy multiples of 10
     await unpayableBuyer.buy(dublr.address, {value: 20});
     // Can't buy if there is any change due
-    await expect(unpayableBuyer.buy(dublr.address, {value: 25})).to.be.revertedWith("Can't give change");
+    await expect(unpayableBuyer.buy(dublr.address, {value: 25})).to.be.revertedWith("Can't refund change");
   });
   
   it("Heap stress test", async () => {
