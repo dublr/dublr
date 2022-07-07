@@ -263,7 +263,7 @@ abstract contract DublrInternal is OmniToken {
         // Last element in heap must be inserted into the space vacated by deletion of removedOrder,
         // then moved into position via down-heap (percolate down) operation
         uint256 lastOrderIdx;
-        unchecked { lastOrderIdx = orderBook.length - 1; }  // Checked by require above
+        unchecked { lastOrderIdx = orderBook.length - 1; }  // Checked by assert above
         Order memory lastOrder = orderBook[lastOrderIdx];
         // Remove lastOrder from the end of the array
         orderBook.pop();

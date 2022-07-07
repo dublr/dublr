@@ -304,14 +304,13 @@ contract Dublr is DublrInternal, IDublrDEX {
         uint256 initialGas = gasleft();
         
         require(sellingEnabled, "Selling disabled");
-        require(priceETHPerDUBLR_x1e9 > 0, "Zero price");
-        require(amountDUBLRWEI > 0, "Zero amount");
+        require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0, "Bad arg");
 
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders from different
         // addresses, by making it costly to do this. We require that the total amount of the sell order be greater than
         // the gas required to run the sell function.
         require(!enforceMinSellValue ||
-                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell order too small");
+                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell value too small");
 
         // Cancel existing order, if there is one, before placing new sell order
         address seller = msg.sender;
@@ -387,7 +386,6 @@ contract Dublr is DublrInternal, IDublrDEX {
         address buyer = msg.sender;
 
         // Get the ETH value sent to this function in units of ETH wei
-        require(msg.value > 0, "Zero payment");
         uint256 buyOrderRemainingETHWEI = msg.value;
 
         // Keep track of total tokens bought or minted
@@ -695,6 +693,8 @@ contract Dublr is DublrInternal, IDublrDEX {
     function buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             public payable override(IDublrDEX) {
 
+        require(msg.value > 0, "Zero payment");
+
         // Function modified with `stateUpdater`
         
         (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) =
@@ -735,20 +735,14 @@ contract Dublr is DublrInternal, IDublrDEX {
             unchecked { ++i; }  // Save gas
         }
         
-        // Send any unspent ETH change to buyer (equiv to deducting the sale amount plus fees from the amount spent)
-        if (amountToRefundToBuyerETHWEI > 0) {
-            // Refund change back to buyer. Reverts if the buyer does not accept payment. (This is different than
-            // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
-            // shut down the whole exchange.)
-            sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't give change");
-            totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
-        }
+        // Refund any unspent ETH back to buyer. Reverts if the buyer does not accept payment. (This is different than
+        // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
+        // shut down the whole exchange.)
+        sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't give change");
+        totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
         
         // Send any remaining ETH (trading fees + minting fees) to owner
-        if (address(this).balance > 0) {
-            // Send fees to owner
-            sendETH(_owner, address(this).balance, "Can't pay owner");
-        }
+        sendETH(_owner, address(this).balance, "Can't pay owner");
     }
 }
 
