@@ -180,7 +180,8 @@ interface IDublrDEX {
      * relative to the number of tokens they buy). The equivalent ETH amount of the order can be calculated as:
      * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not greater
      * than the gas amount supplied to call the `sell()` function, then the transaction will revert with
-     * "Sell order too small".
+     * "Order value too small". Note that gas is normally specified in Gwei, so you need to multiply the gas
+     * value by 1e9 to convert to wei before making this comparison.
      *
      * @notice Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller
      * account must be able to receive ETH payments. In other words, the seller account must either be a non-contract

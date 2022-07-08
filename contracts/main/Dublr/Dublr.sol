@@ -274,7 +274,8 @@ contract Dublr is DublrInternal, IDublrDEX {
      * relative to the number of tokens they buy). The equivalent ETH amount of the order can be calculated as:
      * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not greater
      * than the gas amount supplied to call the `sell()` function, then the transaction will revert with
-     * "Sell order too small".
+     * "Order value too small". Note that gas is normally specified in Gwei, so you need to multiply the gas
+     * value by 1e9 to convert to wei before making this comparison.
      *
      * @notice Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller
      * account must be able to receive ETH payments. In other words, the seller account must either be a non-contract
@@ -300,7 +301,7 @@ contract Dublr is DublrInternal, IDublrDEX {
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
             stateUpdater {
-        uint256 initialGas = gasleft();
+        uint256 initialGas = gasleft() * 1e9;  // Convert from Gwei to wei
         
         require(sellingEnabled, "Selling disabled");
         require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0, "Bad arg");
@@ -309,7 +310,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // addresses, by making it costly to do this. We require that the total amount of the sell order be greater than
         // the gas required to run the sell function.
         require(!enforceMinSellValue ||
-                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Sell value too small");
+                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Order value too small");
 
         // Cancel existing order, if there is one, before placing new sell order
         address seller = msg.sender;
