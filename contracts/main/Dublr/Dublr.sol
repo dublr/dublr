@@ -301,7 +301,7 @@ contract Dublr is DublrInternal, IDublrDEX {
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
             stateUpdater {
-        uint256 initialGas = gasleft() * 1e9;  // Convert from Gwei to wei
+        uint256 initialGasWei = gasleft() * 1e9;  // Convert from Gwei to wei
         
         require(sellingEnabled, "Selling disabled");
         require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0, "Bad arg");
@@ -310,7 +310,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // addresses, by making it costly to do this. We require that the total amount of the sell order be greater than
         // the gas required to run the sell function.
         require(!enforceMinSellValue ||
-                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGas, "Order value too small");
+                dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) > initialGasWei, "Order value too small");
 
         // Cancel existing order, if there is one, before placing new sell order
         address seller = msg.sender;
@@ -370,16 +370,16 @@ contract Dublr is DublrInternal, IDublrDEX {
             private stateUpdater
             returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) {
         uint256 initialGas = gasleft();
-                
-        // Up to 90% of the gas can be used for buying sell orders, leaving a minimum of 10% of the gas for
+
+        // Up to 70% of the gas can be used for buying sell orders, leaving a minimum of 30% of the gas for
         // the rest of this function, including minting. (Buying sell orders is an expensive operation, since
         // it can involve manipulating the heap, potentially removing the root node of the heap for many
-        // separate sell orders.) In testing, between ~90% and 99% of the gas was used for buying sell orders,
-        // with the percentage increasing the more sell orders that were bought.
+        // separate sell orders.)
         // Buying sell orders will terminate when the amount of gas remaining falls below buySellOrderMinGasLimit,
         // to prevent a DoS (gas exhaustion) attack on the exchange. Instead, if the remaining gas falls below
         // this limit, buying of sell orders will stop, and an OutOfGasForBuyingSellOrders event will be emitted.
-        uint256 buySellOrdersMinGasLimit = initialGas / 10;
+        // The transaction may still revert if the provided gas is simply too low to run this function.
+        uint256 buySellOrdersMinGasLimit = initialGas * 3 / 10;
 
         // The buyer is the caller
         address buyer = msg.sender;
@@ -409,7 +409,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
                 // or until we run out of orders.
                 && buyOrderRemainingETHWEI > 0 && orderBook.length > 0) {
-                        
+
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
 
@@ -509,7 +509,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             emit Buy(buyer, sellOrder.seller,
                     sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
-            
+
             if (gasleft() < buySellOrdersMinGasLimit) {
                 // Ran out of gas for buying sell orders --  prevent uncontrolled resource consumption DoS attacks.
                 // See: https://swcregistry.io/docs/SWC-128
@@ -638,12 +638,13 @@ contract Dublr is DublrInternal, IDublrDEX {
      * to receive for a given ETH payable amount, by examining the order book (call `allSellOrders()` to get all
      * orderbook entries, and then sort them in increasing order of price).
      *
-     * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
+     * A maximum of 70% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
      * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop with the order partially filled,
      * an `OutOfGasForBuyingSellOrders` event will be emitted to signify that the order was only partially filled,
      * the unspent ETH balance will be returned to the buyer, and a `RefundChange` event will be emitted to inform
      * the buyer of the refund. (Note that `minimumTokensToBuyOrMintDUBLRWEI` tokens must still be bought in this
      * partially-filled order, otherwise the transaction will instead revert with "Out of gas".)
+     * The transaction may also revert with gas exhaustion if the provided gas is simply too low to run this function.
      *
      * Change is also refunded to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
      * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded ETH payments for the

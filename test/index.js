@@ -729,6 +729,49 @@ describe("Dublr", () => {
     expect(ethBalance1_2.sub(ethBalance1_1)).to.equal(10000 - 15);
   });
 
+  it("Min sell value enforced", async () => {
+    // Mint coins for contract0
+    await contract0["buy(uint256,bool,bool)"](0, true, true, {value: 200000e9, gasPrice: 0});
+    // Should fail if order amount is less than gas amount
+    await expect(contract0.sell(1e9, "400000000000000", {gasLimit: "500000" /* Gwei */}))
+            .to.be.revertedWith("Order value too small");
+    await contract0.sell(1e9, "500000000000000", {gasLimit: "500000" /* Gwei */});
+  });
+
+  it("Buyer out-of-gas condition enforced", async () => {
+    await contract0._owner_enforceMinSellValue(false);
+    // Mint coins for contract0
+    await contract0["buy(uint256,bool,bool)"](0, true, true, {value: "1000000000000000000", gasPrice: 0});
+    
+    const numWallets = 20;
+    const amtPerWallet = 1e9 / initialMintPriceETHPerDUBLR_x1e9;  // 200000
+    const wallets = [];
+    const contracts = [];
+    for (var i = 0; i < numWallets; i++) {  // Create a heap containing `i` orders
+        // Create wallets[i] and fund it with amtPerWallet DUBLR
+        const wallet_i = await ethers.Wallet.createRandom().connect(ethers.provider);
+        await network.provider.send("hardhat_setBalance", [wallet_i.address, "0x100000000000000"]);
+        wallets.push(wallet_i);
+        await contract0["transfer(address,uint256)"](wallet_i.address, amtPerWallet);
+        // Create a connection from wallets[i] to the new contract
+        const contracti = await contract0.connect(wallet_i);
+        contracts.push(contracti);
+        // List the amtPerWallet tokens for each wallet on the exchange
+        await contracti.sell(initialMintPriceETHPerDUBLR_x1e9, amtPerWallet);
+    }    
+    // Measure gas for buying the first sell order (value: 1 ETH).
+    // This is an over-estimate of the gas consumption per sell order, because it includes all gas consumption
+    // by the function
+    const gasPerOrder = await contract0.estimateGas.buy(0, true, false, {value: 1});
+    
+    // Try buying a large amount, but only provide enough gas for buying a few orders.
+    // Should terminate the buy early, with `OutOfGasForBuyingSellOrders` event.
+    await expect(contract0.buy(0, true, false, {value: 1e9, gasLimit: gasPerOrder * 3}))
+            .to.emit(contract0, "OutOfGasForBuyingSellOrders");
+    // Not all orders were bought
+    expect(await contract0.orderBookSize()).to.be.within(1, 18);
+  });
+
   it("Change given to buyer", async () => {
     dublr = await Dublr.deploy(100e9, 1);  // Re-deploy Dublr with 100 ETH == 1 DUBLR
     await dublr.deployed();
