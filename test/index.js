@@ -694,9 +694,9 @@ describe("Dublr", () => {
     await contract1.cancelMySellOrder({gasPrice: 0});
     expect(await contract0.balanceOf(wallet[1].address, {gasPrice: 0})).to.equal(4000000);
     // Check holder (wallet[0]) receives fees.
-    // 1 ETH wei fee, out of 2 ETH spent (seller amount is rounded down)
+    // 0 ETH wei fee, out of 2 ETH spent, because order is so small.
     const ethBalance0_1 = await wallet[0].getBalance();
-    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(1);
+    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(0);
     await contract2.cancelMySellOrder();
     expect(await contract0.balanceOf(wallet[2].address, {gasPrice: 0})).to.equal(2400000);
   });
@@ -722,12 +722,41 @@ describe("Dublr", () => {
     expect((await contract0.cheapestSellOrder({gasPrice: 0})).amountDUBLRWEI).to.equal(6000000000);
     const ethBalance0_2 = await wallet[0].getBalance();
     const ethBalance1_2 = await wallet[1].getBalance();
-    // Check fees are sent correctly to owner.
-    // Fee for price of 2500 == ceil(2500 * .0015) == ceil(3.75) == 4
-    // 4 x 2500 = 10000 ETH was spent, so 16 ETH was collected as a fee
-    expect(ethBalance0_2.sub(ethBalance0_1)).to.equal(16);
+    // Check that fees are sent correctly to owner.
+    // 10000 ETH was spent, so 10000 * 0.0015 = 15 ETH was collected as a market maker fee
+    expect(ethBalance0_2.sub(ethBalance0_1)).to.equal(15);
     // Remainder is payment sent to seller
-    expect(ethBalance1_2.sub(ethBalance1_1)).to.equal(10000 - 16);
+    expect(ethBalance1_2.sub(ethBalance1_1)).to.equal(10000 - 15);
+  });
+
+  it("Change given to buyer", async () => {
+    dublr = await Dublr.deploy(100e9, 1);  // Re-deploy Dublr with 100 ETH == 1 DUBLR
+    await dublr.deployed();
+    await dublr._owner_enforceMinSellValue(false);
+
+    const contract1 = await dublr.connect(wallet[1]);
+    const contract2 = await dublr.connect(wallet[2]);
+    // Mint coins for contract1
+    await contract1["buy(uint256,bool,bool)"](0, true, true, {value: 1e9, gasPrice: 0});  // 1B ETH wei => 10M DUBLR wei
+    expect(await dublr.balanceOf(wallet[1].address)).to.equal(10e6);
+
+    await contract1.sell(50e9, 10e6);   // Sell at price 50 ETH == 1 DUBLR
+
+    const ethBalance0_0 = await wallet[0].getBalance();
+    const ethBalance1_0 = await wallet[1].getBalance();
+    const ethBalance2_0 = await wallet[2].getBalance();
+    // Buy with a value of 1000033 ETH
+    // At 50 ETH per DUBLR, that buys 20000.66 DUBLR
+    // 20k DUBLR should be bought for 1M ETH, and 33 ETH should be refunded to buyer.
+    // Seller should receive 1M eth minus fee of .15% == 1M - 1500
+    await contract2["buy(uint256,bool,bool)"](0, true, true, {value: 1000033, gasPrice: 0});
+    expect(await dublr.balanceOf(wallet[2].address)).to.equal(20000);
+    const ethBalance0_1 = await wallet[0].getBalance();
+    const ethBalance1_1 = await wallet[1].getBalance();
+    const ethBalance2_1 = await wallet[2].getBalance();
+    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(1500);         // Fees sent to owner are 1500 ETH
+    expect(ethBalance1_1.sub(ethBalance1_0)).to.equal(1e6 - 1500);   // Seller receives 1M ETH minus seller fee of 1500 ETH
+    expect(ethBalance2_1.sub(ethBalance2_0)).to.equal(-1e6);         // Buyer spends 1000033 ETH, 33 ETH refunded
   });
 
   it("Roll over from one sell order to the next when an order is exhausted", async () => {
@@ -759,7 +788,7 @@ describe("Dublr", () => {
     // The number of DUBLR tokens that can be bought with the remaining ETH balance is
     // 2000 / (2500 / 10^9) = 800000000.
     // Amount remaining of order = 1e10 - 800000000 == 9200000000
-    // Fees collected on 3250 ETH = 3250 * .0015 = 4.875 ETH
+    // Fees collected on 3250 ETH = 3250 * .0015 = 4.875 ETH => rounded to 5 ETH
     await contract3["buy(uint256,bool,bool)"](0, true, true, {value: 3250, gasPrice: 0});
     // The cheapest order should have totally sold out, leaving only the more expensive order
     const cheapestSellOrder = await contract0.cheapestSellOrder({gasPrice: 0});
@@ -769,9 +798,9 @@ describe("Dublr", () => {
     const ethBalance1_1 = await wallet[1].getBalance();
     const ethBalance2_1 = await wallet[2].getBalance();
     const ethBalance3_1 = await wallet[3].getBalance();
-    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(6);     // Owner fees
+    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(5);     // Owner fees
     expect(ethBalance1_1.sub(ethBalance1_0)).to.equal(1248);  // 1250 minus seller fee
-    expect(ethBalance2_1.sub(ethBalance2_0)).to.equal(1996);  // 2000 minus seller fee
+    expect(ethBalance2_1.sub(ethBalance2_0)).to.equal(1997);  // 2000 minus seller fee
     expect(ethBalance3_1.sub(ethBalance3_0)).to.equal(-3250); // Buyer spent 3250, the original amount
   });  
 
@@ -800,11 +829,11 @@ describe("Dublr", () => {
     const ethBalance1_1 = await wallet[1].getBalance();
     const ethBalance2_1 = await wallet[2].getBalance();
     expect(ethBalance2_1.sub(ethBalance2_0)).to.equal(-amtSpent);
-    // Fee is 50000 * 0.0015 == 75, but this is rounded up to 76 due to numerical error.
-    // 50000 spent by buyer on first 20B tokens; 50000 -76 = 49924 received by seller;
-    expect(ethBalance1_1.sub(ethBalance1_0)).to.equal(49924);
+    // Fee is 50000 * 0.0015 == 75
+    // 50000 spent by buyer on first 20B tokens; 50000 - 75 = 49925 received by seller;
+    expect(ethBalance1_1.sub(ethBalance1_0)).to.equal(49925);
     // Mint fees are all sent to owner, along with 75 for seller fees
-    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(250000 + 76)
+    expect(ethBalance0_1.sub(ethBalance0_0)).to.equal(250000 + 75)
     expect(await contract0.orderBookSize()).to.equal(0);
   });
 
@@ -861,10 +890,10 @@ describe("Dublr", () => {
     const ethBalance0_0 = await wallet[0].getBalance();
     const ethBalance1_0 = await wallet[1].getBalance();
     await unpayableSeller.sell(contract0.address, initialMintPriceETHPerDUBLR_x1e9 - 1, 2000000, {gasPrice: 0});
-    // Try buying the sell order (only 9 ETH worth will be bought rather than 10 ETH, because of the market taker fee).
+    // Try buying the sell order (there is no market taker fee, because order is too small).
     // This should succeed, but the seller payment should be forfeited.
     await expect(contract1["buy(uint256,bool,bool)"](0, true, true, {value: 10, gasPrice: 0}))
-            .to.emit(contract0, "Unpayable").withArgs(unpayableSeller.address, 9, "0x");
+            .to.emit(contract0, "Unpayable").withArgs(unpayableSeller.address, 10, "0x");
     const ethBalance0_1 = await wallet[0].getBalance();
     const ethBalance1_1 = await wallet[1].getBalance();
     expect(ethBalance1_1.sub(ethBalance1_0)).to.equal(-10); // Buyer spent 10 ETH wei

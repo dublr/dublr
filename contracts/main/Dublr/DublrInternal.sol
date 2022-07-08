@@ -293,14 +293,6 @@ abstract contract DublrInternal is OmniToken {
     // -----------------------------------------------------------------------------------------------------------------
     // Math functions
     
-    /**
-     * @dev Divide, rounding up to nearest integer.
-     * Roughly equivalent to ceil((double) numerator / (double) denominator).
-     */
-    function divRoundUp(uint256 numerator, uint256 denominator) internal pure returns (uint256) {
-        return (numerator + denominator - 1) / denominator;
-    }
-    
     /** @dev Return the minimum of two values. */
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
@@ -321,10 +313,12 @@ abstract contract DublrInternal is OmniToken {
         return dublrAmt * priceETHPerDUBLR_x1e9 / _1e9;
     }
     
-    /** @dev Convert DUBLR to ETH, subtracting market maker fee. */
-    function dublrToEthLessMarketMakerFeeRoundDown(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9)
+    /** @dev Convert DUBLR to ETH, subtracting market maker fee, and rounding to nearest 1 ETH. */
+    function dublrToEthLessMarketMakerFee(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9)
             internal pure returns (uint256) {
-        return dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT / (_1e9 * FIXED_POINT);
+        // Round to nearest 1 ETH
+        uint256 denom = _1e9 * FIXED_POINT;
+        return (dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
     }
     
     /** @dev Convert ETH to DUBLR. */

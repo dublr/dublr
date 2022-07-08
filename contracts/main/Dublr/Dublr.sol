@@ -463,7 +463,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Convert the number of DUBLR tokens bought into an ETH balance to send to seller, after subtracting
             // the trading fee.
             uint256 amountToSendToSellerETHWEI =
-                    dublrToEthLessMarketMakerFeeRoundDown(amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9);
+                    dublrToEthLessMarketMakerFee(amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9);
 
             // Transfer DUBLR from sell order to buyer: ----------------------------------------------------------------
 
