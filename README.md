@@ -4,13 +4,13 @@
 
 ## tl;dr
 
-Dublr is a smart contract token that implements several token standards (ERC20, ERC777, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
+[Dublr](https://github.com/dublr/dublr) is a smart contract token that implements several token standards (ERC20, ERC777, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
 ## Short overview
 
 Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain. Dublr has some very unique features:
 
-* Dublr is a token smart contract that is compatible with many different token APIs (ERC20, ERC777, ERC1363, ERC4524, and EIP2612 permits), making it maximally flexible and useful.
+* Dublr is a token smart contract that is compatible with many different token APIs (ERC20, ERC777, ERC1363, ERC4524, and EIP2612 permits), making it maximally flexible and useful. [OmniToken](contracts/main/OmniToken) is the foundation that provides this broad API compatibility.
 * Dublr is also its own built-in decentralized exchange or DEX (sell-side only), meaning that sellers can list Dublr tokens for sale, and buyers can buy Dublr tokens, using the Dublr contract itself. (Because Dublr implements ERC20, it can also be traded on all other centralized and decentralized exchanges.)
 * The supply of DUBLR tokens is created by on-demand minting at the current _mint price_ (in ETH per DUBLR), when demand exceeds supply below the mint price, rather than via ICO or airdrop.
 * The maximum value of the DUBLR/ETH exchange rate is fixed by the current mint price. The actual price at which Dublr tokens can be bought is the minimum out of the current mint price and the price of the cheapest sell order currently listed on the built-in DEX.
