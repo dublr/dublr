@@ -4,7 +4,7 @@ OmniToken (not to be confused with the OMNI ERC20 token) is an extremely secure 
 
 As a result of careful attention to code quality and security, and given the number of supported token APIs and extensions, OmniToken is the most robust, secure, and flexible Ethereum smart contract for fungible tokens that is available today.
 
-OmniToken is the foundation upon which the [Dublr token](README.md) is built.
+OmniToken is the foundation upon which the [Dublr token](../../../README.md) is built.
 
 ## Token APIs supported by OmniToken
 

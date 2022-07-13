@@ -18,16 +18,16 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 
 ## Longer overview
 
-**Supported token APIs:** Dublr builds on the [OmniToken](OmniTokenAPI.md) library, which supports a wide range of APIs for:
+**Supported token APIs:** Dublr builds on the [OmniToken](contracts/main/OmniToken/README.md) library, which supports a wide range of APIs for:
   * safe sending of ERC20-compatible tokens (to prevent the irretrievable loss of tokens when they are sent to the wrong address);
   * safe granting of 3rd party spending allowances (to counter a well-known "double allowance spend" vulnerability of ERC20);
   * time-limited allowances (so that forgotten allowances don't render a wallet vulnerable to being drained);
   * the granting of allowances via signed permits; and
   * recipient/sender/spender notification after a transfer is complete, and spender notification after an allowance is granted.
 
-**Buying tokens:** Dublr token supply is not created and distributed the usual way, via ICO or airdrop, but rather buyers can simply call the payable `buy()` function on [the Dublr contract](DublrAPI.md#buying-api) with any amount of ETH, and the maximum number of Dublr tokens that can be bought or minted for that price will be placed in the buyer's DUBLR wallet. Token supply grows as needed to meet demand.
+**Buying tokens:** Dublr token supply is not created and distributed the usual way, via ICO or airdrop, but rather buyers can simply call the payable `buy()` function on [the Dublr contract](contracts/main/Dublr/README.md#buying-api) with any amount of ETH, and the maximum number of Dublr tokens that can be bought or minted for that price will be placed in the buyer's DUBLR wallet. Token supply grows as needed to meet demand.
 
-**Selling tokens:** The built-in DEX can be used to list Dublr tokens for sale by calling `sell(price, amount)` on [the Dublr contract](DublrAPI.md#selling-api). As long as the list price of the tokens is below the mint price, a buyer may buy these tokens when calling `buy()`. Tokens are bought in increasing order of list price, until sell orders are exhausted or the mint price is reached. Once the mint price is reached, new tokens are minted for buyers with the remaining buyer's balance, increasing the total supply of tokens, rather than filling more expensive sell orders.
+**Selling tokens:** The built-in DEX can be used to list Dublr tokens for sale by calling `sell(price, amount)` on [the Dublr contract](contracts/main/Dublr/README.md#selling-api). As long as the list price of the tokens is below the mint price, a buyer may buy these tokens when calling `buy()`. Tokens are bought in increasing order of list price, until sell orders are exhausted or the mint price is reached. Once the mint price is reached, new tokens are minted for buyers with the remaining buyer's balance, increasing the total supply of tokens, rather than filling more expensive sell orders.
 
 **Mint price:** The mint price doubles every 90 days, equivalent to a compound interest rate for the _maximum_ price a coin may be sold for of 0.77% per day. The mint price increases exponentially at this rate over 30 doubling periods (7.5 years). The mint price puts a hard cap on how fast the price of Dublr tokens may grow, increasing total supply as needed to meet the demand, to keep tokens selling at the mint price or below. After 30 doubling periods, minting is permanently disabled, fixing the total supply forever. However, minting will probably stop long before the 30th doubling period due to the mint price eventually becoming exorbitant.
 
@@ -35,7 +35,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 
 **Security:** Dublr is tightly secured against security vulnerabilities, via:
 
-* OmniToken's strong [security model](OmniTokenAPI.md#erc20-extensions-and-deviations-from-standards-to-increase-security)
+* OmniToken's strong [security model](contracts/main/OmniToken/README.md#erc20-extensions-and-deviations-from-standards-to-increase-security)
 * Dublr's implementation of reentrancy protection via the [Checks-Effects-Interactions](https://blog.openzeppelin.com/reentrancy-after-istanbul/) pattern
 * reentrancy locks
 * extensive unit testing
@@ -82,12 +82,12 @@ Alternatively, Dublr tokens can be sold or provided as liquidity on an ERC20-com
 
 Use your MetaMask wallet to send tokens to another wallet.
 
-For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC777, ERC1363, or ERC4524 APIs](OmniTokenAPI.md) to send, spend, or use Dublr tokens, or to approve token spenders.
+For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC777, ERC1363, or ERC4524 APIs](contracts/main/OmniToken/README.md) to send, spend, or use Dublr tokens, or to approve token spenders.
 
 ## Contract info
 
 * The Dublr smart contract is deployed at address: `TODO`
-* The Dublr contract was deployed on `TODO date`, starting the clock on the [mint price schedule](DublrAPI.md#getting-the-current-mint-price).
+* The Dublr contract was deployed on `TODO date`, starting the clock on the [mint price schedule](contracts/main/Dublr/README.md#getting-the-current-mint-price).
 * The initial mint price is 0.000005 ETH per DUBLR (`initialMintPriceETHPerDUBLR_x1e9 == 5000`).
 * Owner/deployer's initial mint amount: 2B DUBLR (10k ETH equiv at 0.000005 ETH per DUBLR). All other supply is minted on demand.
 * The source code of the Dublr smart contract can be verified to be the same as the source code in this GitHub repository using Etherscan. `TODO`

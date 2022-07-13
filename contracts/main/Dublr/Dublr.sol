@@ -289,6 +289,11 @@ contract Dublr is DublrInternal, IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
+     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
+     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
+     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
+     *
      * @param priceETHPerDUBLR_x1e9 the price to list the tokens for sale at, in ETH per DUBLR token, multiplied
      *          by `10^9`.
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
@@ -361,7 +366,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @return amountToRefundToBuyerETHWEI The amount of ETH to refund to the buyer.
      * @return amountToSendToSellersCopy The amount(s) of ETH to send to the sellers.
      */
-    function _buy(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
+    function _buy_stateUpdater(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             // Modified with stateUpdater for reentrancy protection
             private stateUpdater
             returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) {
@@ -655,6 +660,11 @@ contract Dublr is DublrInternal, IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
+     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
+     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
+     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
+     *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
      *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
      *      bought or minted by the time all ETH funds of the transaction have been expended, then the transaction is
@@ -672,7 +682,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // CHECKS / EFFECTS / EVENTS:
         
         (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) =
-                _buy(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
+                _buy_stateUpdater(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
 
         // INTERACTIONS:
 

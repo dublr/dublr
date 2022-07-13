@@ -195,6 +195,11 @@ interface IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
+     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
+     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
+     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
+     *
      * @param priceETHPerDUBLR_x1e9 the price to list the tokens for sale at, in ETH per DUBLR token, multiplied
      *          by `10^9`.
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
@@ -242,6 +247,11 @@ interface IDublrDEX {
      * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
+     *
+     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
+     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
+     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
      *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
