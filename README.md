@@ -35,10 +35,10 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 
 **Security:** Dublr is tightly secured against security vulnerabilities, via:
 
-* OmniToken's strong [security model](contracts/main/OmniToken#erc20-extensions-and-deviations-from-standards-to-increase-security)
-* Dublr's implementation of reentrancy protection via the [Checks-Effects-Interactions](https://blog.openzeppelin.com/reentrancy-after-istanbul/) pattern
-* reentrancy locks
-* extensive unit testing
+* Third-party security audits by two companies: Omniscia and SolidProof.
+* Static analysis, using SolHint and Slither.
+* Extensive unit testing.
+* OmniToken's strong [security model](contracts/main/OmniToken#erc20-extensions-and-deviations-from-standards-to-increase-security), with particularly close attention paid to protection against reentrancy attacks via the [Checks-Effects-Interactions](https://blog.openzeppelin.com/reentrancy-after-istanbul/) pattern, and via reentrancy locks.
 
 ## Quick Start
 
