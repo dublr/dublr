@@ -166,10 +166,18 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
+    /**
+     * @notice Emitted when the owner/deployer of the contract calls an `_owner_...` function.
+     *
+     * @param msgData The ABI-encoded data for the function call, from `msg.data`.
+     */
+    event OwnerCall(bytes msgData);
+
     /** @dev Limit access to a function to the owner of the contract. */
     modifier ownerOnly() {
         require(msg.sender == _owner, "Not owner");
         _;
+        emit OwnerCall(msg.data);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
