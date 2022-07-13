@@ -134,7 +134,7 @@ If a buyer buys DUBLR tokens from a sell order, the DUBLR tokens are transferred
 
 Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price, the buyer must be able to receive ETH payments. In other words, the buyer account must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()` or `fallback()` functions to receive payment.
 
-Note that there is a limit to the number of sell orders that can be bought per call to `buy()` to prevent uncontrolled resource (gas) consumption DoS attacks, so you may need to call `buy()` multiple times to spend the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange` event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even multiple of the token price (i.e. change is given where appropriate).
+Note that there is a limit to the amount of gas that can be used to buy sell orders per call to `buy()`, to prevent uncontrolled resource (gas) exhaustion DoS attacks, so you may need to call `buy()` multiple times to spend the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange` event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even multiple of the token price (i.e. change is given where appropriate).
 
 For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens.
 
