@@ -561,10 +561,10 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Only mint if the number of DUBLR tokens to mint is at least 1
             if (amountToMintDUBLRWEI > 0) {
                 // Mint this number of DUBLR tokens for buyer (msg.sender).
-                // Call the `__mint` version rather than the `_mint` version to ensure that the minting function
+                // Call the `_mint_stateUpdater` version rather than the `_mint` version to ensure that the minting function
                 // cannot call out to external contracts, so that Checks-Effects-Interactions is followed (since
                 // we're still updating state).
-                __mint(buyer, buyer, amountToMintDUBLRWEI, "", "");
+                _mint_stateUpdater(buyer, buyer, amountToMintDUBLRWEI, "", "");
 
                 // Keep track of total tokens bought or minted
                 totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;
