@@ -298,28 +298,55 @@ abstract contract DublrInternal is OmniToken {
     /** The fixed point multiplier for priceETHPerDUBLR_x1e9 prices (i.e. 1e9). */
     uint256 internal constant _1e9 = 1e9;
     
-    /** @dev Convert DUBLR to ETH. */
-    function dublrToEthRoundUpClamped(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9, uint256 maxEthAmt)
-            internal pure returns (uint256) {
+    /**
+     * @dev Convert DUBLR to ETH, rounding up, then clamping the result to a given max value.
+     *
+     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to ETH.
+     * @param maxEthAmt The max amount of ETH to clamp the return value to.
+     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price.
+     */
+    function dublrToEthRoundUpClamped(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt, uint256 maxEthAmt)
+            internal pure returns (uint256 equivEthAmt) {
         uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + _1e9 - 1) / _1e9;
         return ethAmt < maxEthAmt ? ethAmt : maxEthAmt;
     }
     
-    /** @dev Convert DUBLR to ETH. */
-    function dublrToEthRoundDown(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9) internal pure returns (uint256) {
+    /**
+     * @dev Convert DUBLR to ETH, rounding down.
+     *
+     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to ETH.
+     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price.
+     */
+    function dublrToEthRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
+            internal pure returns (uint256 equivEthAmt) {
         return dublrAmt * priceETHPerDUBLR_x1e9 / _1e9;
     }
     
-    /** @dev Convert DUBLR to ETH, subtracting market maker fee, and rounding to nearest 1 ETH. */
-    function dublrToEthLessMarketMakerFee(uint256 dublrAmt, uint256 priceETHPerDUBLR_x1e9)
-            internal pure returns (uint256) {
+    /**
+     * @dev Convert DUBLR to ETH, subtracting market maker fee, and rounding to nearest 1 ETH.
+     *
+     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to ETH.
+     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price, less market maker fee.
+     */
+    function dublrToEthLessMarketMakerFee(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
+            internal pure returns (uint256 equivEthAmt) {
         // Round to nearest 1 ETH
         uint256 denom = _1e9 * FIXED_POINT;
         return (dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
     }
     
-    /** @dev Convert ETH to DUBLR. */
-    function ethToDublrRoundDown(uint256 ethAmt, uint256 priceETHPerDUBLR_x1e9) internal pure returns (uint256) {
+    /**
+     * @dev Convert ETH to DUBLR, rounding down.
+     *
+     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
+     * @param ethAmt The amount of ETH to convert to DUBLR.
+     * @return equivDublrAmt the DUBLR-equivalent value of ethAmt at the given price.
+     */
+    function ethToDublrRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 ethAmt)
+            internal pure returns (uint256 equivDublrAmt) {
         return ethAmt * _1e9 / priceETHPerDUBLR_x1e9;
     }
 }

@@ -305,7 +305,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders from different
         // addresses, by making it costly to do this. We require that the total amount of the sell order in ETH be greater
         // than a specified minimum amount.
-        require(dublrToEthRoundDown(amountDUBLRWEI, priceETHPerDUBLR_x1e9) >= minSellOrderValueETHWEI,
+        require(dublrToEthRoundDown(priceETHPerDUBLR_x1e9, amountDUBLRWEI) >= minSellOrderValueETHWEI,
                 "Order value too small");
 
         // Cancel existing order, if there is one, before placing new sell order
@@ -422,7 +422,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Determine how many whole DUBLR can be purchased with the buyer's remaining ETH balance,
                 // at the current price of this order. (Whole DUBLR => round down.)
                 uint256 amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI =
-                        ethToDublrRoundDown(buyOrderRemainingETHWEI, sellOrder.priceETHPerDUBLR_x1e9);
+                        ethToDublrRoundDown(sellOrder.priceETHPerDUBLR_x1e9, buyOrderRemainingETHWEI);
 
                 if (amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI == 0) {
                     // The amount of DUBLR that the buyer can afford at the sell order price is less than 1 token,
@@ -451,7 +451,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // and deduct the market maker fee from the amount to send the seller.
             // Round up amount to charge buyer and round down amount to send seller to nearest 1 ETH wei.
             uint256 amountToChargeBuyerETHWEI = dublrToEthRoundUpClamped(
-                    amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9,
+                    sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     // Clamping shouldn't be needed, but to guarantee safe rounding up,
                     // clamp amount to available balance
                     buyOrderRemainingETHWEI);
@@ -460,7 +460,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Convert the number of DUBLR tokens bought into an ETH balance to send to seller, after subtracting
             // the trading fee.
             uint256 amountToSendToSellerETHWEI =
-                    dublrToEthLessMarketMakerFee(amountToBuyDUBLRWEI, sellOrder.priceETHPerDUBLR_x1e9);
+                    dublrToEthLessMarketMakerFee(sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI);
 
             // Transfer DUBLR from sell order to buyer: ----------------------------------------------------------------
 
@@ -547,12 +547,12 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Convert the amount remaining of the buy order from ETH to DUBLR.
             // Round down to the nearest whole DUBLR wei.
             uint256 amountToMintDUBLRWEI = ethToDublrRoundDown(
-                    buyOrderRemainingETHWEI, mintPriceETHPerDUBLR_x1e9);
+                    mintPriceETHPerDUBLR_x1e9, buyOrderRemainingETHWEI);
                     
             // Convert the whole number of DUBLR wei to mint back into ETH wei to spend on minting.
             // Round up to the nearest 1 ETH wei.
             uint256 amountToMintETHWEI = dublrToEthRoundUpClamped(
-                    amountToMintDUBLRWEI, mintPriceETHPerDUBLR_x1e9,
+                    mintPriceETHPerDUBLR_x1e9, amountToMintDUBLRWEI,
                     // Clamping shouldn't be needed, but to guarantee safe rounding up,
                     // clamp amount to available balance
                     buyOrderRemainingETHWEI);
