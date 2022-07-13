@@ -143,16 +143,16 @@ For coins that are minted, the full ETH amount sent by the buyer is collected as
 The owner/deployer of the Dublr contract may also call the following methods to disable/enable features and/or cancel all sell orders in case of emergency (e.g. if a vulnerability is found):
 
 ```
-function _owner_enableBuying(bool enable) external ownerOnly;
+function _owner_setMinSellOrderValueETHWEI(uint256 value) external ownerOnly;
 
 function _owner_enableSelling(bool enable) external ownerOnly;
+
+function _owner_enableBuying(bool enable) external ownerOnly;
 
 function _owner_enableMinting(bool enable) external ownerOnly;
 
 function _owner_cancelAllSellOrders() external ownerOnly;
 ```
-
-`_owner_enableBuying(false)` disables buying but not minting, so `buy()` will still work (by minting tokens) unless minting is also disabled.
 
 ## Gas usage
 
@@ -170,5 +170,5 @@ By using the Dublr API, you confirm that the Dublr token ("DUBLR") is not consid
 
 In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable event. It is your responsibility to record the purchase price and sale price in ETH or your local currency equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
 
-By using Dublr, you agree to the [Legal Agreement and Disclaimers for Dublr and OmniToken](https://github.com/dublr/dublr/blob/main/LEGAL.md).
+By using Dublr, you agree to the full [Legal Agreement and Disclaimers for Dublr and OmniToken](https://github.com/dublr/dublr/blob/main/LEGAL.md).
 
