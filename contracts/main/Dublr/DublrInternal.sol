@@ -29,8 +29,8 @@ abstract contract DublrInternal is OmniToken {
     /** @dev true if selling is enabled on the built-in distributed exchange. */
     bool internal sellingEnabled = true;
 
-    /** @dev If true, enforce that a sell order's ETH value equivalent is greater than the gas supplied to `sell()`. */
-    bool internal enforceMinSellValue = true;
+    /** @dev The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`. */
+    uint256 public minSellOrderValueETHWEI = 10000000000000000;   // == 0.01 ETH == US$10 equiv, if 1 ETH == US$1000
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
@@ -58,13 +58,10 @@ abstract contract DublrInternal is OmniToken {
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
-     * @dev Enable or disable enforcement that a sell order's ETH value equivalent must be greater than the gas
-     * supplied to `sell()`, to prevent tiny sell orders from being created.
-     *
-     * This is technically only disabled during unit testing, and it would be a bad idea for the owner to disable
-     * this on a live exchange, as it may enable DoS attacks for a sufficiently determined attacker.
+     * @dev Set the ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via
+     * a call to `sell()`.
      */
-    function _owner_enforceMinSellValue(bool enforce) external ownerOnly { enforceMinSellValue = enforce; }
+    function _owner_setMinSellOrderValueETHWEI(uint256 value) external ownerOnly { minSellOrderValueETHWEI = value; }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Constants

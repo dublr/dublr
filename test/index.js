@@ -546,7 +546,7 @@ describe("Dublr", () => {
   });
 
   it("Minting without any sell orders", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     await expect(contract1["buy(uint256,bool,bool)"](0, true, true, )).to.be.revertedWith("Zero payment");
     await contract1["buy(uint256,bool,bool)"](0, true, true, {value: 1});
@@ -567,7 +567,7 @@ describe("Dublr", () => {
   });
 
   it("Only one sell order at once", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     expect(await contract0.orderBookSize()).to.equal(0);
     await expect(contract0.cheapestSellOrder()).to.be.revertedWith("No sell order");
     await expect(contract0.mySellOrder()).to.be.revertedWith("No sell order");
@@ -594,7 +594,7 @@ describe("Dublr", () => {
   });
 
   it("Sell orders are sorted", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const contract2 = await contract0.connect(wallet[2]);
     const contract3 = await contract0.connect(wallet[3]);
@@ -661,7 +661,7 @@ describe("Dublr", () => {
   });
 
   it("Sell orders can be bought", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const contract2 = await contract0.connect(wallet[2]);
     const contract3 = await contract0.connect(wallet[3]);
@@ -702,7 +702,7 @@ describe("Dublr", () => {
   });
 
   it("Larger sell orders", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const contract3 = await contract0.connect(wallet[3]);
     
@@ -732,14 +732,13 @@ describe("Dublr", () => {
   it("Min sell value enforced", async () => {
     // Mint coins for contract0
     await contract0["buy(uint256,bool,bool)"](0, true, true, {value: 200000e9, gasPrice: 0});
-    // Should fail if order amount is less than gas amount
-    await expect(contract0.sell(1e9, "400000000000000", {gasLimit: "500000" /* Gwei */}))
-            .to.be.revertedWith("Order value too small");
-    await contract0.sell(1e9, "500000000000000", {gasLimit: "500000" /* Gwei */});
+    // Should fail if order amount is less than the minimum limit
+    await expect(contract0.sell(1e9, "9999999999999999")).to.be.revertedWith("Order value too small");
+    await contract0.sell(1e9, "10000000000000000");
   });
 
   it("Buyer out-of-gas condition enforced", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     // Mint coins for contract0
     await contract0["buy(uint256,bool,bool)"](0, true, true, {value: "1000000000000000000", gasPrice: 0});
     
@@ -775,7 +774,7 @@ describe("Dublr", () => {
   it("Change given to buyer", async () => {
     dublr = await Dublr.deploy(100e9, 1);  // Re-deploy Dublr with 100 ETH == 1 DUBLR
     await dublr.deployed();
-    await dublr._owner_enforceMinSellValue(false);
+    await dublr._owner_setMinSellOrderValueETHWEI(0);
 
     const contract1 = await dublr.connect(wallet[1]);
     const contract2 = await dublr.connect(wallet[2]);
@@ -803,7 +802,7 @@ describe("Dublr", () => {
   });
 
   it("Roll over from one sell order to the next when an order is exhausted", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const contract2 = await contract0.connect(wallet[2]);
     const contract3 = await contract0.connect(wallet[3]);
@@ -848,7 +847,7 @@ describe("Dublr", () => {
   });  
 
   it("Buying transitions from buying sell orders to minting at mint price", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const contract2 = await contract0.connect(wallet[2]);
 
@@ -881,7 +880,7 @@ describe("Dublr", () => {
   });
 
   it("Mint price over 1.0 ETH per DUBLR", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
 
     // Move forward 25 doubling periods (mint price will be close to 145 ETH per DUBLR)
@@ -923,7 +922,7 @@ describe("Dublr", () => {
   });
 
   it("Unpayable seller", async () => {
-    await contract0._owner_enforceMinSellValue(false);
+    await contract0._owner_setMinSellOrderValueETHWEI(0);
     const contract1 = await contract0.connect(wallet[1]);
     const unpayableSeller = await deployContract(wallet[2], UnpayableSeller, []);
     await contract0["buy(uint256,bool,bool)"](0, true, true, {value: 10});  // Mint 10 ETH worth => 2000000 DUBLR
@@ -946,7 +945,7 @@ describe("Dublr", () => {
   it("Unpayable buyer", async () => {
     dublr = await Dublr.deploy(10 * 1e9, 1);  // Re-deploy Dublr with 10 ETH == 1 DUBLR
     await dublr.deployed();
-    await dublr._owner_enforceMinSellValue(false);
+    await dublr._owner_setMinSellOrderValueETHWEI(0);
     const unpayableBuyer = await deployContract(wallet[1], UnpayableBuyer, []);
     // Give unpayableBuyer contract an ETH balance
     await wallet[0].sendTransaction({to: unpayableBuyer.address, value: 100, gasLimit: 3e7});
@@ -963,7 +962,7 @@ describe("Dublr", () => {
     const numWallets = 20;
     dublr = await Dublr.deploy(initialMintPriceETHPerDUBLR_x1e9, numWallets * 100);
     await dublr.deployed();
-    await dublr._owner_enforceMinSellValue(false);
+    await dublr._owner_setMinSellOrderValueETHWEI(0);
     const wallets = [];
     const contracts = [];
     const prices = [];
