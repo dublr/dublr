@@ -175,13 +175,11 @@ interface IDublrDEX {
      * canceled before the new order is placed (there may only be one order per seller in the order book at one
      * time).
      *
-     * Note that the equivalent ETH amount of the order must be greater than the gas supplied to run this sell
-     * function, to ensure that the order size is not unreasonably small (small orders cost buyers a lot of gas
-     * relative to the number of tokens they buy). The equivalent ETH amount of the order can be calculated as:
-     * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not greater
-     * than the gas amount supplied to call the `sell()` function, then the transaction will revert with
-     * "Order value too small". Note that gas is normally specified in Gwei, so you need to multiply the gas
-     * value by 1e9 to convert to wei before making this comparison.
+     * Note that the equivalent ETH amount of the order must be at least `minSellOrderValueETHWEI`, to ensure
+     * that the order size is not unreasonably small (small orders cost buyers a lot of gas relative to the number
+     * of tokens they buy). The equivalent ETH amount of the order can be calculated as:
+     * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not at least
+     * `minSellOrderValueETHWEI`, then the transaction will revert with "Order value too small".
      *
      * @notice Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller
      * account must be able to receive ETH payments. In other words, the seller account must either be a non-contract
