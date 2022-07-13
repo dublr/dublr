@@ -1,5 +1,7 @@
 # Dublr API
 
+[Dublr](https://github.com/dublr/dublr) is a fungible token smart contract that implements several token standards (ERC20, ERC777, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
+
 ## Selling API
 
 ### Getting the current mint price
