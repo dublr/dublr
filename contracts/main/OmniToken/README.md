@@ -378,3 +378,5 @@ By using the OmniToken API, you confirm that any token based on the OmniToken co
 
 In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable event. It is your responsibility to record the purchase price and sale price in ETH or your local currency equivalent for each use, transfer, or sale of any OmniToken-based tokens you own, and to pay the taxes due.
 
+By using OmniToken, you agree to the [Legal Agreement and Disclaimers for Dublr and OmniToken](https://github.com/dublr/dublr/blob/main/LEGAL.md).
+

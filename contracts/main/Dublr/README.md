@@ -57,7 +57,7 @@ Dublr uses a polynomial approximation to the exponential function, so the doubli
 
 The mint price is returned as `0` after 30 doubling periods (90 days each) from the creation of the Dublr contract, and minting is disabled after this time (i.e. after ~7.5 years total), fixing the total supply forever.
 
-The initial mint price is ETH per DUBLR is 0.000005, meaning that initially, 1/0.000005 == 200000 DUBLR tokens are minted for every ETH token spent by a buyer. If you spent 1 ETH wei right after the Dublr contract is launched, you would end up with 200000 DUBLR wei (both tokens use the same equivalence of 1 token = `10^18` wei), and ninety days later, after the mint price has doubled once, spending another 1 ETH on minting would cause only roughly 100000 DUBLR tokens to be minted. (See [Disclaimers](https://github.com/dublr/dublr/LEGAL.md) re. non-monetary-equivalence of DUBLR tokens.)
+The initial mint price is ETH per DUBLR is 0.000005, meaning that initially, 1/0.000005 == 200000 DUBLR tokens are minted for every ETH token spent by a buyer. If you spent 1 ETH wei right after the Dublr contract is launched, you would end up with 200000 DUBLR wei (both tokens use the same equivalence of 1 token = `10^18` wei), and ninety days later, after the mint price has doubled once, spending another 1 ETH on minting would cause only roughly 100000 DUBLR tokens to be minted. (See [Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md) re. non-monetary-equivalence of DUBLR tokens.)
 
 However, minting will also cease when the supply of tokens listed for sale in the built-in DEX, at a price below the current mint price, exceeds buyer demand. This will happen once the minting price becomes exorbitant relative to the market price.
 
@@ -169,4 +169,6 @@ The following table shows the average amount of gas used by function calls durin
 By using the Dublr API, you confirm that the Dublr token ("DUBLR") is not considered an unregistered or illegal security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by the laws of any legal jurisdiction in which you hold or use Dublr tokens.
 
 In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable event. It is your responsibility to record the purchase price and sale price in ETH or your local currency equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
+
+By using Dublr, you agree to the [Legal Agreement and Disclaimers for Dublr and OmniToken](https://github.com/dublr/dublr/blob/main/LEGAL.md).
 
