@@ -402,6 +402,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
         bool ranOutOfGasForBuyingSellOrders = false;
+        bool skipMinting = false;
         while (
                 // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
                 // buying stage. This allows exchange function to be shut down or disabled if necessary without
@@ -434,14 +435,9 @@ contract Dublr is DublrInternal, IDublrDEX {
                     // so the buyer can't continue buying orders (order prices in the rest of the order book, and
                     // the mint price, have to be at least as high as the current price). Stop going through order
                     // book, and refunded remaining ETH balance to the buyer as change.
-                    if (buyOrderRemainingETHWEI > 0) {
-                        amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
-                        // Emit RefundChange event
-                        emit RefundChange(buyer, buyOrderRemainingETHWEI);
-                        // The minting price must be higher than the current order, so minting will not be
-                        // triggered either.
-                        buyOrderRemainingETHWEI = 0;
-                    }
+                    // The minting price must be higher than the current order, so minting will not be
+                    // triggered either.
+                    skipMinting = true;
                     break;
                 }
 
@@ -524,13 +520,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Stop processing sell orders, and also do not fall through to minting (since there may be a big
                 // jump in price between the current order's sell price and the mint price). The remaining ETH
                 // balance must be refunded as-is.
-                
-                // Refund the rest of the remaining ETH to the buyer
-                amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
-                // Emit RefundChange event
-                emit RefundChange(buyer, buyOrderRemainingETHWEI);
-                // Stop processing sell orders, and do not mint anything
-                buyOrderRemainingETHWEI = 0;
+                skipMinting = true;
                 break;
             }
         }
@@ -541,7 +531,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // mint price, switch to minting
         if (
             // Only mint if minting is enabled by owner and is allowed by the caller
-            mintingEnabled && allowMinting
+            mintingEnabled && allowMinting && !skipMinting
             // If mint price is 0, then the minting period has finished
             && mintPriceETHPerDUBLR_x1e9 > 0
             // Only mint if there is a remaining ETH balance
