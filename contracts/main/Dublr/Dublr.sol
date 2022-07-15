@@ -566,10 +566,6 @@ contract Dublr is DublrInternal, IDublrDEX {
 
                 // Emit Dublr Mint event (provides more useful info than other mint events)
                 emit Mint(buyer, mintPriceETHPerDUBLR_x1e9, amountToMintETHWEI, amountToMintDUBLRWEI);
-                
-                // Minting fee is 100% of amount spent to mint coins, i.e. amountToMintETHWEI.
-                // We don't need to actually calculate this or store it anywhere, because we can calculate
-                // how much ETH is left over from msg.value after buyer and sellers have been paid.
             }
 
             // Refund change to buyer for any fractional remainder (ETH worth less than 1 DUBLR): ----------------------
