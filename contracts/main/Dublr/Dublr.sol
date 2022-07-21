@@ -403,6 +403,8 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         bool ranOutOfGasForBuyingSellOrders = false;
         bool skipMinting = false;
+        bool skippedOwnSellOrder = false;
+        PriceAndAmount memory ownSellOrder;
         while (
                 // If buyingEnabled is false (set by owner) or allowBuying is false (set by caller), skip over the
                 // buying stage. This allows exchange function to be shut down or disabled if necessary without
@@ -414,6 +416,15 @@ contract Dublr is DublrInternal, IDublrDEX {
 
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
+
+            // Skip buying own sell order, if present
+            if (sellOrder.seller == buyer) {
+                skippedOwnSellOrder = true;
+                ownSellOrder.priceETHPerDUBLR_x1e9 = sellOrder.priceETHPerDUBLR_x1e9;
+                ownSellOrder.amountDUBLRWEI = sellOrder.amountDUBLRWEI;
+                heapRemove(0);
+                continue;
+            }
 
             // Stop iterating through sell orders once the order price is above the current mint price.
             if (mintPriceETHPerDUBLR_x1e9 > 0
@@ -523,6 +534,16 @@ contract Dublr is DublrInternal, IDublrDEX {
                 skipMinting = true;
                 break;
             }
+        }
+
+        // If own sell order was skipped, add it back into the orderbook
+        if (skippedOwnSellOrder) {
+            heapInsert(Order({
+                    seller: buyer,
+                    // solhint-disable-next-line not-rely-on-time
+                    timestamp: block.timestamp,
+                    priceETHPerDUBLR_x1e9: ownSellOrder.priceETHPerDUBLR_x1e9,
+                    amountDUBLRWEI: ownSellOrder.amountDUBLRWEI}));
         }
 
         // Minting: ----------------------------------------------------------------------------------------------------
