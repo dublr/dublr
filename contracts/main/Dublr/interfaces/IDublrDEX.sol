@@ -156,6 +156,20 @@ interface IDublrDEX {
     function allSellOrders() external view
             // Returning an array requires ABI encoder v2, which is the default in Solidity >=0.8.0.
             returns (PriceAndAmount[] memory priceAndAmountOfSellOrders);
+    /**
+     * @notice The current mint price, in ETH per DUBLR (multiplied by `10^9`).
+     *
+     * @dev Returns the current mint price for this token. Calls to `buy()` will buy tokens for sale
+     * rather than minting new tokens, if there are tokens listed below the current mint price.
+     *
+     * The mint price grows exponentially, doubling every 90 days for 30 doubling periods, and then minting
+     * is disabled. In practice, minting may no longer be triggered long before that time, if the supply
+     * of coins for sale below the mint price exceeds demand.
+     *
+     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
+     *              or zero if the minting time period has ended (after 30 doubling periods).
+     */
+    function mintPrice() external view returns (uint256 mintPriceETHPerDUBLR_x1e9);
 
     // -----------------------------------------------------------------------------------------------------------------
     // Selling
