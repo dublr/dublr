@@ -29,9 +29,6 @@ abstract contract DublrInternal is OmniToken {
     /** @dev true if selling is enabled on the built-in distributed exchange. */
     bool internal sellingEnabled = true;
 
-    /** @dev The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`. */
-    uint256 public minSellOrderValueETHWEI = 10000000000000000;   // == 0.01 ETH == US$10 equiv, if 1 ETH == US$1000
-
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
@@ -54,14 +51,6 @@ abstract contract DublrInternal is OmniToken {
      * unless minting is also disabled.
      */
     function _owner_enableBuying(bool enable) external ownerOnly { buyingEnabled = enable; }
-
-    /**
-     * @notice Only callable by the owner/deployer of the contract.
-     *
-     * @dev Set the ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via
-     * a call to `sell()`.
-     */
-    function _owner_setMinSellOrderValueETHWEI(uint256 value) external ownerOnly { minSellOrderValueETHWEI = value; }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Constants

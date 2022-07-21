@@ -171,6 +171,13 @@ interface IDublrDEX {
      */
     function mintPrice() external view returns (uint256 mintPriceETHPerDUBLR_x1e9);
 
+    /**
+     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
+     *
+     * @return The ETH value of the minimum sell order.
+     */
+    function minSellOrderValueETHWEI() external returns (uint256);
+
     // -----------------------------------------------------------------------------------------------------------------
     // Selling
 

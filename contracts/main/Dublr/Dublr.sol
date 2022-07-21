@@ -45,6 +45,23 @@ contract Dublr is DublrInternal, IDublrDEX {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Minimum sell order value (mitigates DEX DoS attacks by sellers)
+
+    /**
+     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
+     */
+    // == 0.01 ETH == US$10 equiv, if 1 ETH == US$1000
+    uint256 public override(IDublrDEX) minSellOrderValueETHWEI = 10000000000000000;
+
+    /**
+     * @notice Only callable by the owner/deployer of the contract.
+     *
+     * @dev Set the ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via
+     * a call to `sell()`.
+     */
+    function _owner_setMinSellOrderValueETHWEI(uint256 value) external ownerOnly { minSellOrderValueETHWEI = value; }
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Determine the current mint price, based on block timestamp
 
     /**
