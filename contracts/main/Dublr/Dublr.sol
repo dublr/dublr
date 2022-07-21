@@ -60,7 +60,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
      *              or zero if the minting time period has ended (after 30 doubling periods).
      */
-    function mintPrice() public view returns (uint256 mintPriceETHPerDUBLR_x1e9) {
+    function mintPrice() public view override(IDublrDEX) returns (uint256 mintPriceETHPerDUBLR_x1e9) {
         // This is only a polynomial approximation of 2^t, so the doubling is not quite precise.
         // Factor increase in mint price during 1st doubling period: 1.999528
         // Factor increase in mint price during 30th doubling period: 1.973042
