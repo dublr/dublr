@@ -182,21 +182,26 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev If the caller has no current sell order, reverts.
      *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the caller's current sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`).
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei).
+     *          (multiplied by `10^9`), or 0 if the caller has no current sell order.
+     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei),
+     *          or 0 if the caller has no current sell order.
      */
     function mySellOrder() external view override(IDublrDEX)
             returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
         uint256 heapIdxPlusOne = sellerToHeapIdxPlusOne[msg.sender];
-        require(heapIdxPlusOne > 0, "No sell order");
-        uint256 heapIdx;
-        unchecked { heapIdx = heapIdxPlusOne - 1; }  // Save gas
-        
-        // Peek at the order in the heap without removing it
-        Order storage order = orderBook[heapIdx];
-        assert(order.seller == msg.sender);  // Sanity check
-        
-        return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        if (heapIdxPlusOne = 0) {
+            // Caller has no sell order
+            return (0, 0);
+        } else {
+            uint256 heapIdx;
+            unchecked { heapIdx = heapIdxPlusOne - 1; }  // Save gas
+            
+            // Peek at the order in the heap without removing it
+            Order storage order = orderBook[heapIdx];
+            assert(order.seller == msg.sender);  // Sanity check
+            
+            return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        }
     }
 
     /**
