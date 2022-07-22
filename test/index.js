@@ -569,8 +569,8 @@ describe("Dublr", () => {
   it("Only one sell order at once", async () => {
     await contract0._owner_setMinSellOrderValueETHWEI(0);
     expect(await contract0.orderBookSize()).to.equal(0);
-    await expect(contract0.cheapestSellOrder()).to.be.revertedWith("No sell order");
-    await expect(contract0.mySellOrder()).to.be.revertedWith("No sell order");
+    expect((await contract0.cheapestSellOrder()).amountDUBLRWEI).to.equal(0);  // No sell orders
+    expect((await contract0.mySellOrder()).amountDUBLRWEI).to.equal(0);  // No sell order for caller
     await expect(contract0.sell(initialMintPriceETHPerDUBLR_x1e9 / 2, 1001))
             .to.be.revertedWith("Insufficient balance");
     const startBalance = await contract0.balanceOf(wallet[0].address);
