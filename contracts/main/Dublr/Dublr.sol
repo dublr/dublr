@@ -239,7 +239,6 @@ contract Dublr is DublrInternal, IDublrDEX {
     function allSellOrders() external view override(IDublrDEX)
             // Returning an array requires ABI encoder v2, which is the default in Solidity >=0.8.0.
             returns (PriceAndAmount[] memory priceAndAmountOfSellOrders) {
-        require(orderBook.length > 0, "No sell order");
         priceAndAmountOfSellOrders = new PriceAndAmount[](orderBook.length);
         uint256 len = orderBook.length;
         for (uint256 i = 0; i < len; ) {
