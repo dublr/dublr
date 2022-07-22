@@ -311,10 +311,14 @@ contract Dublr is DublrInternal, IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
-     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * @notice The creator and deployer of Dublr makes no claims, guarantees, or promises, express or implied, about the
      * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
-     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
-     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
+     * Fees collected for the sale or minting of DUBLR tokens are not used to fund any ongoing development of the
+     * Dublr smart contract, and the Dublr smart contract runs autonomously on the blockchain without any intervention,
+     * therefore the Dublr smart contract represents no common enterprise. By purchasing DUBLR tokens, you agree to
+     * abide by all applicable laws, you assume all liability and risk for your actions, and you agree to all terms and
+     * conditions in the Legal Agreement and Disclaimers for Dublr and OmniToken:
+     * https://github.com/dublr/dublr/blob/main/LEGAL.md
      *
      * @param priceETHPerDUBLR_x1e9 the price to list the tokens for sale at, in ETH per DUBLR token, multiplied
      *          by `10^9`.
@@ -681,10 +685,14 @@ contract Dublr is DublrInternal, IDublrDEX {
      * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
-     * @notice The creator of Dublr makes no claims, guarantees, or promises, express or implied, about the
+     * @notice The creator and deployer of Dublr makes no claims, guarantees, or promises, express or implied, about the
      * profitability, utility, fitness for any purpose, or redeemability for fiat value of any purchased DUBLR tokens.
-     * By purchasing DUBLR tokens, you assume all liability and risk, and you agree to all conditions in the Legal
-     * Agreement and Disclaimers for Dublr and OmniToken: https://github.com/dublr/dublr/blob/main/LEGAL.md
+     * Fees collected for the sale or minting of DUBLR tokens are not used to fund any ongoing development of the
+     * Dublr smart contract, and the Dublr smart contract runs autonomously on the blockchain without any intervention,
+     * therefore the Dublr smart contract represents no common enterprise. By purchasing DUBLR tokens, you agree to
+     * abide by all applicable laws, you assume all liability and risk for your actions, and you agree to all terms and
+     * conditions in the Legal Agreement and Disclaimers for Dublr and OmniToken:
+     * https://github.com/dublr/dublr/blob/main/LEGAL.md
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
      *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
