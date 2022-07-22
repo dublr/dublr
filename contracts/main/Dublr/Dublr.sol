@@ -190,7 +190,7 @@ contract Dublr is DublrInternal, IDublrDEX {
     function mySellOrder() external view override(IDublrDEX)
             returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
         uint256 heapIdxPlusOne = sellerToHeapIdxPlusOne[msg.sender];
-        if (heapIdxPlusOne = 0) {
+        if (heapIdxPlusOne == 0) {
             // Caller has no sell order
             return (0, 0);
         } else {
