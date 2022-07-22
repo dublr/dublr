@@ -163,17 +163,20 @@ contract Dublr is DublrInternal, IDublrDEX {
     /**
      * @notice The price of the cheapest sell order in the order book for any user.
      *
-     * @dev If there are no current sell orders, reverts.
-     *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`).
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *          (multiplied by `10^9`), or 0 if the orderbook is empty.
+     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei),
+     *          or 0 if the orderbook is empty.
      */
     function cheapestSellOrder() external view override(IDublrDEX)
             returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
-        require(orderBook.length > 0, "No sell order");
-        Order storage order = orderBook[0];
-        return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        if (orderBook.length == 0) {
+            // Orderbook is empty
+            return (0, 0);
+        } else {
+            Order storage order = orderBook[0];
+            return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        }
     }
 
     /**
