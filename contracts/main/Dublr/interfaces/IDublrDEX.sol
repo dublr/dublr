@@ -112,13 +112,12 @@ interface IDublrDEX {
     function cheapestSellOrder() external view returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
     /**
-     * @notice The current sell order in the order book for the caller.
-     *
-     * @dev If the caller has no current sell order, reverts.
+     * @notice The current sell order in the order book for the caller, or (0, 0) if none.
      *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the caller's current sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`).
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei).
+     *          (multiplied by `10^9`), or 0 if the caller has no current sell order.
+     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei),
+     *          or 0 if the caller has no current sell order.
      */
     function mySellOrder() external view returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
