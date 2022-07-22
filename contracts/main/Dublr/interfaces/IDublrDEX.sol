@@ -91,6 +91,34 @@ interface IDublrDEX {
     event Unpayable(address indexed seller, uint256 amountETHWEI, bytes data);
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Mint price
+            
+    /**
+     * @notice The current mint price, in ETH per DUBLR (multiplied by `10^9`).
+     *
+     * @dev Returns the current mint price for this token. Calls to `buy()` will buy tokens for sale
+     * rather than minting new tokens, if there are tokens listed below the current mint price.
+     *
+     * The mint price grows exponentially, doubling every 90 days for 30 doubling periods, and then minting
+     * is disabled. In practice, minting may no longer be triggered long before that time, if the supply
+     * of coins for sale below the mint price exceeds demand.
+     *
+     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
+     *              or zero if the minting time period has ended (after 30 doubling periods).
+     */
+    function mintPrice() external view returns (uint256 mintPriceETHPerDUBLR_x1e9);
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Minimum sell order value
+
+    /**
+     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
+     *
+     * @return The ETH value of the minimum sell order.
+     */
+    function minSellOrderValueETHWEI() external returns (uint256);
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Public functions for interacting with order book
 
     /**
@@ -103,11 +131,10 @@ interface IDublrDEX {
     /**
      * @notice The price of the cheapest sell order in the order book for any user.
      *
-     * @dev If there are no current sell orders, reverts.
-     *
      * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`).
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *          (multiplied by `10^9`), or 0 if the orderbook is empty.
+     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei),
+     *          or 0 if the orderbook is empty.
      */
     function cheapestSellOrder() external view returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
@@ -155,27 +182,6 @@ interface IDublrDEX {
     function allSellOrders() external view
             // Returning an array requires ABI encoder v2, which is the default in Solidity >=0.8.0.
             returns (PriceAndAmount[] memory priceAndAmountOfSellOrders);
-    /**
-     * @notice The current mint price, in ETH per DUBLR (multiplied by `10^9`).
-     *
-     * @dev Returns the current mint price for this token. Calls to `buy()` will buy tokens for sale
-     * rather than minting new tokens, if there are tokens listed below the current mint price.
-     *
-     * The mint price grows exponentially, doubling every 90 days for 30 doubling periods, and then minting
-     * is disabled. In practice, minting may no longer be triggered long before that time, if the supply
-     * of coins for sale below the mint price exceeds demand.
-     *
-     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
-     *              or zero if the minting time period has ended (after 30 doubling periods).
-     */
-    function mintPrice() external view returns (uint256 mintPriceETHPerDUBLR_x1e9);
-
-    /**
-     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
-     *
-     * @return The ETH value of the minimum sell order.
-     */
-    function minSellOrderValueETHWEI() external returns (uint256);
 
     // -----------------------------------------------------------------------------------------------------------------
     // Selling
