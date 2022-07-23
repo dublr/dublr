@@ -375,7 +375,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev Amount in ETH to send to sellers. This will be cleared at the end of each buy() call, it is only
      * held in storage rather than memory because Solidity does not support dynamic arrays in memory.
      */
-    SellerPayment[] private amountToSendToSellers;
+    SellerPayment[] private sellerPaymentsTemp;
 
     /**
      * @dev Buy sell orders and then mint new tokens. Updates state of the contract, but does not call external
@@ -389,13 +389,13 @@ contract Dublr is DublrInternal, IDublrDEX {
      *      transaction is pending.
      * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
      * @param allowMinting If `true`, allow the minting of new tokens at the current mint price.
-     * @return amountToRefundToBuyerETHWEI The amount of ETH to refund to the buyer.
-     * @return amountToSendToSellersCopy The amount(s) of ETH to send to the sellers.
+     * @return amountToRefundToBuyerETHWEI The amount of unspent ETH to refund to the buyer.
+     * @return sellerPayments The amount(s) of ETH to send to the sellers.
      */
     function _buy_stateUpdater(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             // Modified with stateUpdater for reentrancy protection
             private stateUpdater
-            returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) {
+            returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory sellerPayments) {
         uint256 initialGas = gasleft();
 
         // Up to 70% of the gas can be used for buying sell orders, leaving a minimum of 30% of the gas for
@@ -422,8 +422,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         uint256 mintPriceETHPerDUBLR_x1e9 = mintPrice();
 
         // Amount of ETH to refund to (buyer, and amounts to send to sellers at end of transaction
-        amountToRefundToBuyerETHWEI = 0;  // Return param
-        assert(amountToSendToSellers.length == 0);  // Sanity check
+        assert(sellerPaymentsTemp.length == 0);  // Sanity check
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
@@ -523,7 +522,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
             // Record the amount of ETH to be sent to the seller (there may be several sellers involved in one buy)
             if (amountToSendToSellerETHWEI > 0) {
-                amountToSendToSellers.push(
+                sellerPaymentsTemp.push(
                         SellerPayment({seller: sellOrder.seller, amountETHWEI: amountToSendToSellerETHWEI}));
             }
 
@@ -615,11 +614,13 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // If the remaining ETH balance is greater than zero, it could not all be spent -- refund to buyer
         if (buyOrderRemainingETHWEI > 0) {
-            amountToRefundToBuyerETHWEI += buyOrderRemainingETHWEI;
+            amountToRefundToBuyerETHWEI = buyOrderRemainingETHWEI;  // Return param
             // Emit RefundChange event
             emit RefundChange(buyer, buyOrderRemainingETHWEI);
             // All remaining ETH is used up.
             buyOrderRemainingETHWEI = 0;
+        } else {
+            amountToRefundToBuyerETHWEI = 0;  // Return param
         }
         
         // Protect against slippage: -----------------------------------------------------------------------------------
@@ -632,17 +633,17 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Finalize state: ---------------------------------------------------------------------------------------------
 
-        // In order to prevent the opportunity for reentrancy attacks, a copy of the amountToSendToSellers array
-        // is made in order to ensure amountToSendToSellers is emptied before any sendETH call to external contracts
-        // (otherwise looping through the amountToSendToSellers array to send payments to sellers would mix state
+        // In order to prevent the opportunity for reentrancy attacks, a copy of the sellerPaymentsTemp array
+        // is made in order to ensure sellerPaymentsTemp is emptied before any sendETH call to external contracts
+        // (otherwise looping through the sellerPaymentsTemp array to send payments to sellers would mix state
         // updates with calling external contracts, breaking the Checks-Effects-Interactions pattern).
-        uint256 numSellers = amountToSendToSellers.length;
-        amountToSendToSellersCopy = new SellerPayment[](numSellers);  // Return param
+        uint256 numSellers = sellerPaymentsTemp.length;
+        sellerPayments = new SellerPayment[](numSellers);  // Return param
         for (uint256 i = 0; i < numSellers; ) {
-            amountToSendToSellersCopy[i] = amountToSendToSellers[i];
+            sellerPayments[i] = sellerPaymentsTemp[i];
             unchecked { ++i; }  // Save gas
         }
-        delete amountToSendToSellers;  // Clear storage array, so that it is always clear at the end of buy()
+        delete sellerPaymentsTemp;  // Clear storage array, so that it is always clear at the end of buy()
     }
 
     /**
@@ -707,7 +708,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // CHECKS / EFFECTS / EVENTS:
         
-        (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory amountToSendToSellersCopy) =
+        (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory sellerPayments) =
                 _buy_stateUpdater(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
 
         // INTERACTIONS:
@@ -716,9 +717,9 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // Send any pending ETH payments to sellers
         uint256 totalSentToSellersAndBuyerETHWEI = 0;
-        uint256 numSellers = amountToSendToSellersCopy.length;
+        uint256 numSellers = sellerPayments.length;
         for (uint256 i = 0; i < numSellers; ) {
-            SellerPayment memory sellerPayment = amountToSendToSellersCopy[i];
+            SellerPayment memory sellerPayment = sellerPayments[i];
             // By attempting to send with `errorMessageOnFail == ""`, if sending fails, then instead of reverting,
             // sendETH will return false. We need to catch this case, because otherwise, a seller could execute
             // a DoS on the DEX by refusing to accept ETH payments, since every buy attempt would fail. Due to
