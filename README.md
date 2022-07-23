@@ -11,7 +11,7 @@ Dublr is a fungible token smart contract that implements several token standards
 Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain. Dublr has some very unique features:
 
 * Dublr is a token smart contract that is compatible with many different token APIs (ERC20, ERC777, ERC1363, ERC4524, and EIP2612 permits), making it maximally flexible and useful. [OmniToken](contracts/main/OmniToken) is the foundation that provides this broad API compatibility.
-* Dublr is also its own built-in decentralized exchange or DEX (sell-side only), meaning that sellers can list Dublr tokens for sale, and buyers can buy Dublr tokens, using the Dublr contract itself. (Because Dublr implements ERC20, it can also be traded on all other centralized and decentralized exchanges.)
+* Dublr is also its own built-in decentralized exchange or DEX (sell-side only), meaning that sellers can list Dublr tokens for sale, and buyers can buy Dublr tokens, using the Dublr contract itself.
 * The supply of DUBLR tokens is created by on-demand minting at the current _mint price_ (in ETH per DUBLR), when demand exceeds supply below the mint price, rather than via ICO or airdrop.
 * The maximum value of the DUBLR/ETH exchange rate is fixed by the current mint price. The actual price at which Dublr tokens can be bought is the minimum out of the current mint price and the price of the cheapest sell order currently listed on the built-in DEX.
 * The mint price grows exponentially over time, with a doubling period of 90 days (hence the name, "Dublr"), setting an upper envelope to how fast the _maximum_ price of DUBLR can grow, equivalent to 0.77% compound interest per day.
@@ -31,7 +31,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 
 **Mint price:** The mint price doubles every 90 days, equivalent to a compound interest rate for the _maximum_ price a coin may be sold for of 0.77% per day. The mint price increases exponentially at this rate over 30 doubling periods (7.5 years). The mint price puts a hard cap on how fast the price of Dublr tokens may grow, increasing total supply as needed to meet the demand, to keep tokens selling at the mint price or below. After 30 doubling periods, minting is permanently disabled, fixing the total supply forever. However, minting will probably stop long before the 30th doubling period due to the mint price eventually becoming exorbitant.
 
-**No promise of profits by the issuer:** No profit or return is guaranteed, promised, or predicted if DUBLR tokens are purchased. It is impossible to predict actual market behavior, and DUBLR tokens can sell at any price. See [Legal Agreement and Disclaimers](LEGAL.md).
+**No promise of profits by the issuer:** No profit or return is guaranteed, promised, or predicted if DUBLR tokens are purchased or sold using the Dublr smart contract or any other trading platform. It is impossible to predict actual market behavior, DUBLR tokens can sell at any price, and sudden market events can cause significant loss. See the full [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md).
 
 **Security:** Dublr is tightly secured against security vulnerabilities, via:
 
@@ -59,7 +59,11 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
   * Note: In the early days of Dublr, you probably want to call `buy()` to get the best possible price on DUBLR tokens, whether bought or minted. Later, if the market price for DUBLR tokens becomes much lower than the (exponentially growing) mint price as a result of a strong increase in supply of tokens sold significantly below the mint price, then you may want to call `buy(/* allowMinting = */ false)` instead of `buy()` in order to disable minting, so that the ETH amount that you send doesn't end up minting DUBLR tokens for an exorbitant price.
 1. If you already imported the DUBLR as a custom token, then you should see your tokens appear in your MetaMask wallet summary screen.
 
-Because Dublr implements the ERC20 API, Dublr tokens may also be able to be bought on an ERC20-compatible external decentralized exchange (DEX) such as UniSwap, if there is liquidity on the exchange. However, ensure that you are getting a good price, relative to the price of Dublr tokens on Dublr's built-in DEX. Use the "Read" tab to call `mintPrice` to determine the current mint price, and call `cheapestSellOrder` or `allSellOrders` to see orders in Dublr's own order book.
+(Because Dublr implements ERC20,  including being traded on all other centralized and decentralized exchanges -- however, there is no guarantee of sufficient liquidity for these activities, and there is no guarantee of profit from trading Dublr tokens. )
+
+Because Dublr implements the ERC20 API, Dublr can be used as any other ERC20 token, including being traded on an ERC20-compatible external decentralized or centralized exchange, if there is sufficient liquidity on the exchange. However, ensure that you are getting a good price, relative to the price of Dublr tokens on Dublr's built-in DEX and the current mint price.
+
+Note that there is no guarantee of sufficient supply or liquidity on the sell side of any decentralized or centralized exchange, including the Dublr DEX, to be able to buy DUBLR at any given price. Therefore, there is no guarantee whatsoever of profit from trading Dublr tokens. See the full [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md) for more information.
 
 ### Selling Dublr tokens
 
@@ -76,7 +80,7 @@ Any existing sell order will be canceled automatically before listing the new or
 
 Your sell order can be canceled at any time by calling the "Write" function `cancelMySellOrder`.
 
-Alternatively, Dublr tokens can be sold or provided as liquidity on an ERC20-compatible external decentralized exchange (DEX) such as UniSwap.
+Note that there is no guarantee of sufficient demand or liquidity on the buy side of any decentralized or centralized exchange, including the Dublr DEX, to be able to sell DUBLR at any given price. Therefore, there is no guarantee whatsoever of profit from trading Dublr tokens. See the full [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md) for more information.
 
 ### Sending/spending Dublr tokens:
 
@@ -86,25 +90,31 @@ For more advanced usage, you can use any dapp, contract, or commandline library 
 
 ## Contract info
 
-* The Dublr smart contract is deployed at address: `TODO`
-* The Dublr contract was deployed on `TODO date`, starting the clock on the [mint price schedule](contracts/main/Dublr#getting-the-current-mint-price).
-* The initial mint price is 0.000005 ETH per DUBLR (`initialMintPriceETHPerDUBLR_x1e9 == 5000`).
-* Owner/deployer's initial mint amount: 2B DUBLR (10k ETH equiv at 0.000005 ETH per DUBLR). All other supply is minted on demand.
-* The source code of the Dublr smart contract can be verified to be the same as the source code in this GitHub repository using Etherscan. `TODO`
+Dublr contract deployment details:
+
+* Address: `TODO`. The source code of the Dublr smart contract can be verified to be the same as the source code in this GitHub repository using Etherscan. `TODO`
+* Deployment date: `TODO date` (starts the clock on the [mint price schedule](contracts/main/Dublr#getting-the-current-mint-price))
+* Initial mint price: is `0.000005` ETH per DUBLR (`initialMintPriceETHPerDUBLR_x1e9 == 5000`)
+* Supply:
+  * Initial mint amount by the creator of Dublr: 2B DUBLR (equivalent to 10k ETH at the initial mint price of 0.000005 ETH per DUBLR).
+  * All other supply is minted on demand.
+
+The Dublr smart contract is intentionally deployed as a *non-proxied contract*, so the code is not changeable or upgradeable by the creator of Dublr after deployment.
+
+* This decision was made in order to increase the security of the deployed Dublr smart contract (since it cannot be changed after deployment). The decision was made only after thorough an enormous amount of development effort, testing, correctness proofs, and internal auditing, and only after two extensive third-party security audits were passed.
+* Non-proxied contracts are far more secure than proxied contracts, as long as the code has passed extensive unit testing and thorough third-party security audits. Proxied contracts are only more secure in the long run, if the developers have put in far less effort up front to ensure the code is complete and correct, and plan to simply fix issues as they arise, through ongoing development effort.
 
 ## Fees
 
-The market maker fee (subtracted from the sale price of sellers' tokens, i.e. deducted from the ETH amount sent from buyer to seller) is 0.15% of the sell order price. This fee is less than the sum of the market maker fee (0.1%) plus the market taker fee (an additional 0.1%) charged by Binance's for their non-VIP trading tier (0.2% total fees per trade) and half the size of Uniswap's fees (0.3%).
+**Buyer fees:** There are no market taker fees for buying tokens listed on the built-in DEX. All ETH that is spent to mint new tokens is collected as a nonrefundable minting fee.
 
-Additionally, all ETH value used to mint new tokens via the `buy()` function are charged as a minting fee, which is an irreversible exchange of ETH for DUBLR.
+**Seller fees:** A nonrefundable market maker fee of 0.15% is subtracted from the ETH amount transferred from the buyer to the seller when tokens are bought. This fee is lower than most DEX fees, e.g. 0.3% for Uniswap, and lower than the total fee for most centralized exchange fees, e.g. 0.2% for Binance (0.1% market maker fee plus 0.1% market taker fee).
 
-Fees are sent to the owner/creator of the Dublr contract. Fees are charged irreversibly, as the cost of services performed by the Dublr smart contract, and no refunds will be given.
-
-The value in ETH of any purchased tokens can only be reclaimed by selling the Dublr tokens on the built-in DEX, or on another DEX such as UniSwap. Selling tokens may incur losses, as the exchange rate fluctuates due to market forces. No promise of increase in value or return on investment, and no promise of avoidance of loss or damage, is made or implied by the owner/creator of the Dublr contract. (See next section.)
+Collected fees are not used to fund any ongoing develompent, maintenance, or promotion of the Dublr smart contract (see [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md)).
 
 # LEGAL AGREEMENT AND DISCLAIMERS
 
-By electing to mint, buy, sell, gift, transmit, store, or otherwise use Dublr tokens (collectively, by using the Dublr token, or by using any functionality implemented by the Dublr smart contract), you agree to all terms of the [Legal Agreement and Disclaimers](LEGAL.md).
+By electing to mint, buy, sell, gift, transmit, store, or otherwise use Dublr tokens (collectively, by using the Dublr token, or by using any functionality implemented by the Dublr smart contract), you agree to all terms of the [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md).
 
 # Author
 
