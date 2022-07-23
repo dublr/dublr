@@ -20,13 +20,13 @@ abstract contract DublrInternal is OmniToken {
     // -----------------------------------------------------------------------------------------------------------------
     // API enablement (needed in case a security issue is discovered with one of the APIs after the contract is created)
 
-    /** @dev true if minting is enabled. */
+    /** @notice true if minting is enabled. */
     bool public mintingEnabled = true;
 
-    /** @dev true if buying is enabled on the built-in distributed exchange. */
+    /** @notice true if buying is enabled on the built-in distributed exchange. */
     bool public buyingEnabled = true;
 
-    /** @dev true if selling is enabled on the built-in distributed exchange. */
+    /** @notice true if selling is enabled on the built-in distributed exchange. */
     bool public sellingEnabled = true;
 
     /**
