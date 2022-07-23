@@ -527,7 +527,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                         SellerPayment({seller: sellOrder.seller, amountETHWEI: amountToSendToSellerETHWEI}));
             }
 
-            // Deduct from the remaining ETH balance of buyer's buy order
+            // Deduct amount spent on tokens from the sell order from the remaining ETH balance of buyer
             unchecked { buyOrderRemainingETHWEI -= amountToChargeBuyerETHWEI; }  // Save gas (see invariant above)
             
             // Fees to send to owner: ----------------------------------------------------------------------------------
@@ -603,15 +603,12 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Keep track of total tokens bought or minted
                 totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;
 
+                // Deduct ETH amount spent on minting
+                unchecked { buyOrderRemainingETHWEI -= amountToMintETHWEI; }  // Save gas (see invariant above)
+
                 // Emit Dublr Mint event (provides more useful info than other mint events)
                 emit Mint(buyer, mintPriceETHPerDUBLR_x1e9, amountToMintETHWEI, amountToMintDUBLRWEI);
             }
-
-            // Refund change to buyer for any fractional remainder (ETH worth less than 1 DUBLR): ----------------------
-
-            // Calculate how much change to give for the last fractional ETH value that is worth less than 1 DUBLR
-            // (amountToMintETHWEI is clamped above to a max of buyOrderRemainingETHWEI)
-            unchecked { buyOrderRemainingETHWEI -= amountToMintETHWEI; }  // Save gas (see invariant above)
         }
         
         // Refund unspent balance: -------------------------------------------------------------------------------------
