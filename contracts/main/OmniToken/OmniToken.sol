@@ -1077,7 +1077,7 @@ contract OmniToken is OmniTokenInternal {
      * @param data Additional data with no specified format, sent in call to `recipient`.
      * @return success `true` unless the transaction is reverted.
      */
-    function transferAndCall(address recipient, uint256 amount, bytes memory data)
+    function transferAndCall(address recipient, uint256 amount, bytes calldata data)
             external erc1363 override(IERC1363) returns (bool success) {
         // Safety is guaranteed by the erc1363 function modifier, which sets _erc1363CallDepth,
         // which requires _transfer to successfully notify the ERC1363 recipient
@@ -1140,7 +1140,7 @@ contract OmniToken is OmniTokenInternal {
      * @param data Additional data with no specified format, sent in call to `recipient`.
      * @return success `true` unless the transaction is reverted.
      */
-    function transferFromAndCall(address holder, address recipient, uint256 amount, bytes memory data)
+    function transferFromAndCall(address holder, address recipient, uint256 amount, bytes calldata data)
             external erc1363 override(IERC1363) returns (bool success) {
         // Safety is guaranteed by the erc1363 function modifier, which sets _erc1363CallDepth,
         // which requires _transfer to successfully notify the ERC1363 recipient
@@ -1197,7 +1197,7 @@ contract OmniToken is OmniTokenInternal {
      * @param data Additional data with no specified format, sent in call to `spender`.
      * @return success `true` unless the transaction is reverted.
      */
-    function approveAndCall(address spender, uint256 amount, bytes memory data)
+    function approveAndCall(address spender, uint256 amount, bytes calldata data)
             external erc1363 override(IERC1363) returns (bool success) {
         // Safety is guaranteed by the erc1363 function modifier, which sets _erc1363CallDepth,
         // which requires _approve to successfully notify the ERC1363 spender
@@ -1256,7 +1256,7 @@ contract OmniToken is OmniTokenInternal {
      * @param data Extra data to add to the emmitted transfer event.
      * @return success `true` if the operation succeeded (otherwise reverts).
      */
-    function safeTransfer(address recipient, uint256 amount, bytes memory data)
+    function safeTransfer(address recipient, uint256 amount, bytes calldata data)
             external erc4524 override(IERC4524) returns(bool success) {
         // Safety is guaranteed by the erc4524 function modifier, which sets _erc4524CallDepth,
         // which requires _transfer to successfully notify the ERC4524 recipient
@@ -1320,7 +1320,7 @@ contract OmniToken is OmniTokenInternal {
      * @param data Extra data to add to the emmitted transfer event.
      * @return success `true` if the operation succeeded (otherwise reverts).
      */
-    function safeTransferFrom(address holder, address recipient, uint256 amount, bytes memory data)
+    function safeTransferFrom(address holder, address recipient, uint256 amount, bytes calldata data)
             external erc4524 override(IERC4524) returns(bool success) {
         // Safety is guaranteed by the erc4524 function modifier, which sets _erc4524CallDepth,
         // which requires _transfer to successfully notify the ERC4524 recipient
