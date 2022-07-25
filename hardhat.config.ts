@@ -58,6 +58,10 @@ module.exports = {
       // So that eth sent/received can be calculated without subtracting out gas used
       initialBaseFeePerGas: 0,
     },
+    rinkeby: {
+      url: process.env.RINKEBY_INFURA_URL,
+      account: process.env.RINKEBY_PRIVATE_KEY,
+    },
   },
 };
 
