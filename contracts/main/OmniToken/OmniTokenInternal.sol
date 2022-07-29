@@ -25,6 +25,7 @@ import "./interfaces/IERC1363Receiver.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
+import "./interfaces/IParityRegistry.sol";
 
 /**
  * @title OmniTokenInternal
@@ -511,6 +512,31 @@ abstract contract OmniTokenInternal is
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Register a function name with Parity's function registnry, used by MetaMask to get function names
+    // https://docs.metamask.io/guide/registering-function-names.html
+    
+    /** The Parity function registry contract on mainnet. */
+    address private PARITY_REGISTRY_ADDR = 0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86;
+    
+    /**
+     * @dev Register a function name with Parity's function registry, used by MetaMask to get function names
+     * from function selectors. Returns silently if registration fails.
+     *
+     * @param functionSignature The function signature to register, without param names.
+     */
+    function registerFunctionWithParity(string memory functionSignature) internal {
+        // `catch` won't catch "Transaction reverted: function call to a non-contract account",
+        // so have to check isContract first.
+        if (isContract(PARITY_REGISTRY_ADDR)) {
+            try IParityRegistry(PARITY_REGISTRY_ADDR).register(functionSignature) {
+                // Success
+            } catch {
+                // Ignore failures
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Functions for interacting with other contracts (modified with `extCaller` for reentrancy protection)
 
     /**
@@ -557,7 +583,7 @@ abstract contract OmniTokenInternal is
             // Use extCaller modifier for reentrancy protection
             internal extCaller {
         address recipientImpl = lookUpInterfaceViaERC1820(recipient, "ERC777TokensRecipient");
-        if (recipientImpl != address(0)) {
+        if (recipientImpl != address(0) && isContract(recipientImpl)) {
             IERC777Recipient(recipientImpl)
                     .tokensReceived(operator, sender, recipient, amount, data, operatorData);
         } else {

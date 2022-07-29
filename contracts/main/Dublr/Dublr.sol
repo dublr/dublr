@@ -42,6 +42,13 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // Register IDublrDEX interface via ERC165
         registerInterfaceViaERC165(type(IDublrDEX).interfaceId, true);
+        
+        // Register non-static functions that called by the UI on the Parity method registry.
+        // Needed by MetaMask to look up method names:
+        // https://docs.metamask.io/guide/registering-function-names.html
+        registerFunctionWithParity("buy(uint256,bool,bool)");
+        registerFunctionWithParity("sell(uint256,uint256)");
+        registerFunctionWithParity("cancelMySellOrder()");
     }
 
     // -----------------------------------------------------------------------------------------------------------------
