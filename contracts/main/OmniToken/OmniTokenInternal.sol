@@ -516,7 +516,7 @@ abstract contract OmniTokenInternal is
     // https://docs.metamask.io/guide/registering-function-names.html
     
     /** The Parity function registry contract on mainnet. */
-    address private PARITY_REGISTRY_ADDR = 0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86;
+    address private constant PARITY_REGISTRY_ADDR = 0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86;
     
     /**
      * @dev Register a function name with Parity's function registry, used by MetaMask to get function names
