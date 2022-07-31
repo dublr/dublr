@@ -331,8 +331,8 @@ contract Dublr is DublrInternal, IDublrDEX {
      *          by `10^9`.
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
      *          Must be less than or equal to the caller's balance. Additionally,
-     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than the
-     *          ETH value of gas supplied to run the function, to ensure the order size is not tiny.
+     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than
+     *          the value of `minSellOrderValueETHWEI()`, to ensure trivial orders don't waste gas.
      */
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
@@ -403,18 +403,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Modified with stateUpdater for reentrancy protection
             private stateUpdater
             returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory sellerPayments) {
-        uint256 initialGas = gasleft();
-
-        // Up to 70% of the gas can be used for buying sell orders, leaving a minimum of 30% of the gas for
-        // the rest of this function, including minting. (Buying sell orders is an expensive operation, since
-        // it can involve manipulating the heap, potentially removing the root node of the heap for many
-        // separate sell orders.)
-        // Buying sell orders will terminate when the amount of gas remaining falls below buySellOrderMinGasLimit,
-        // to prevent a DoS (gas exhaustion) attack on the exchange. Instead, if the remaining gas falls below
-        // this limit, buying of sell orders will stop, and an OutOfGasForBuyingSellOrders event will be emitted.
-        // The transaction may still revert if the provided gas is simply too low to run this function.
-        uint256 buySellOrdersMinGasLimit = initialGas * 3 / 10;
-
         // The buyer is the caller
         address buyer = msg.sender;
 
@@ -433,7 +421,6 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
 
-        bool ranOutOfGasForBuyingSellOrders = false;
         bool skipMinting = false;
         Order memory ownSellOrder;
         while (
@@ -546,23 +533,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             emit Buy(buyer, sellOrder.seller,
                     sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
-
-            if (gasleft() < buySellOrdersMinGasLimit) {
-                // Ran out of gas for buying sell orders --  prevent uncontrolled resource consumption DoS attacks.
-                // See: https://swcregistry.io/docs/SWC-128
-
-                // Record that we ran out of gas so we can revert with an appropriate message if necessary                
-                ranOutOfGasForBuyingSellOrders = true;
-
-                // Emit event
-                emit OutOfGasForBuyingSellOrders(buyer, buyOrderRemainingETHWEI, totBoughtOrMintedDUBLRWEI);
-                
-                // Stop processing sell orders, and also do not fall through to minting (since there may be a big
-                // jump in price between the current order's sell price and the mint price). The remaining ETH
-                // balance must be refunded as-is.
-                skipMinting = true;
-                break;
-            }
         }
 
         // If own sell order was skipped, add it back into the orderbook
@@ -601,9 +571,9 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Only mint if the number of DUBLR tokens to mint is at least 1
             if (amountToMintDUBLRWEI > 0) {
                 // Mint this number of DUBLR tokens for buyer (msg.sender).
-                // Call the `_mint_stateUpdater` version rather than the `_mint` version to ensure that the minting function
-                // cannot call out to external contracts, so that Checks-Effects-Interactions is followed (since
-                // we're still updating state).
+                // Call the `_mint_stateUpdater` version rather than the `_mint` version to ensure that the minting
+                // function cannot call out to external contracts, so that Checks-Effects-Interactions is followed
+                // (since we're still updating state).
                 _mint_stateUpdater(buyer, buyer, amountToMintDUBLRWEI, "", "");
 
                 // Keep track of total tokens bought or minted
@@ -633,10 +603,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Protect against slippage: -----------------------------------------------------------------------------------
         
         // Require that the number of tokens bought or minted met or exceeded the minimum purchase amount
-        require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI,
-                // If buyer ran out of gas for buying sell orders, then this should be reported rather than that
-                // there was too much slippage.
-                ranOutOfGasForBuyingSellOrders ? "Out of gas" : "Too much slippage");
+        require(totBoughtOrMintedDUBLRWEI >= minimumTokensToBuyOrMintDUBLRWEI, "Too much slippage");
 
         // Finalize state: ---------------------------------------------------------------------------------------------
 
@@ -669,18 +636,14 @@ contract Dublr is DublrInternal, IDublrDEX {
      * to receive for a given ETH payable amount, by examining the order book (call `allSellOrders()` to get all
      * orderbook entries, and then sort them in increasing order of price).
      *
-     * A maximum of 70% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
-     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop with the order partially filled,
-     * an `OutOfGasForBuyingSellOrders` event will be emitted to signify that the order was only partially filled,
-     * the unspent ETH balance will be returned to the buyer, and a `RefundChange` event will be emitted to inform
-     * the buyer of the refund. (Note that `minimumTokensToBuyOrMintDUBLRWEI` tokens must still be bought in this
-     * partially-filled order, otherwise the transaction will instead revert with "Out of gas".)
-     * The transaction may also revert with gas exhaustion if the provided gas is simply too low to run this function.
-     *
      * Change is also refunded to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
      * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded ETH payments for the
      * `buy()` function to succed: the buyer account must either be a non-contract wallet (an EOA), or a contract
      * that implements one of the payable `receive()` or `fallback()` functions to receive payment.
+     *
+     * For very large buy amounts with many small sell orders listed on the DEX, the amount of gas required to run the
+     * transaction may exceed the block gas limit. In this case, the only way to buy tokens is to reduce the ETH amount
+     * that is sent.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by

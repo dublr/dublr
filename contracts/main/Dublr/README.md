@@ -134,7 +134,7 @@ If a buyer buys DUBLR tokens from a sell order, the DUBLR tokens are transferred
 
 Because change is given if the buyer sends an ETH amount that is not a whole multiple of the token price, the buyer must be able to receive ETH payments. In other words, the buyer account must either be a non-contract wallet (an EOA), or a contract that implements one of the payable `receive()` or `fallback()` functions to receive payment.
 
-Note that there is a limit to the amount of gas that can be used to buy sell orders per call to `buy()`, to prevent uncontrolled resource (gas) exhaustion DoS attacks, so you may need to call `buy()` multiple times to spend the requested ETH amount on buy orders or minting. Any unused amount is refunded to the buyer with a `RefundChange` event issued. A refund is also issued if the amount of ETH paid with the call to `buy()` is not an even multiple of the token price (i.e. change is given where appropriate).
+Note that a large number of sell orders could be bought with a single call to `buy`, which may cause the block gas limit to be hit. If this happens, the only way to buy tokens is to reduce the ETH amount sent, and buy the desired amount in multiple transactions.
 
 For coins that are minted, the full ETH amount sent by the buyer is collected as a minting fee, and exchanged for DUBLR tokens.
 
@@ -153,16 +153,6 @@ function _owner_enableMinting(bool enable) external ownerOnly;
 
 function _owner_cancelAllSellOrders() external ownerOnly;
 ```
-
-## Gas usage
-
-The following table shows the average amount of gas used by function calls during testing. You may need to multiply these numbers by 2 or more as the size of the contract's data structures grow with usage.
-
-| Function name              | Avg gas used |
-| :---                       |         ---: |
-| buy                        |      134066  |
-| sell                       |      135218  |
-| cancelMySellOrder          |       84235  |
 
 ## Legal agreement
 

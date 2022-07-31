@@ -737,7 +737,7 @@ describe("Dublr", () => {
     await contract0.sell(1e9, "10000000000000000");
   });
 
-  it("Buyer out-of-gas condition enforced", async () => {
+  it("Failure with out-of-gas condition", async () => {
     await contract0._owner_setMinSellOrderValueETHWEI(0);
     // Mint coins for contract0
     await contract0["buy(uint256,bool,bool)"](0, true, true, {value: "1000000000000000000", gasPrice: 0});
@@ -764,11 +764,11 @@ describe("Dublr", () => {
     const gasPerOrder = await contract0.estimateGas.buy(0, true, false, {value: 1});
     
     // Try buying a large amount, but only provide enough gas for buying a few orders.
-    // Should terminate the buy early, with `OutOfGasForBuyingSellOrders` event.
+    // Should terminate the buy early, reverting with "out of gas"
     await expect(contract0.buy(0, true, false, {value: 1e9, gasLimit: gasPerOrder * 3}))
-            .to.emit(contract0, "OutOfGasForBuyingSellOrders");
-    // Not all orders were bought
-    expect(await contract0.orderBookSize()).to.be.within(1, 18);
+            .to.be.reverted;
+    // No orders were bought
+    expect(await contract0.orderBookSize()).to.equal(numWallets);
   });
 
   it("Change given to buyer", async () => {

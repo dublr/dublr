@@ -331,31 +331,6 @@ function _owner_enableERC4524(bool enable) external ownerOnly;
 function _owner_enableEIP2612(bool enable) external ownerOnly;
 ```
 
-## Gas usage
-
-The following table shows the average amount of gas used by function call during testing. If there are multiple functions with the same name, the largest of the gas usage numbers is shown. You may need to multiply these numbers by 2 or more as the size of the contract's data structures grow with usage.
-
-| Function name              | Avg gas used |
-| :--                        |         ---: |
-| approve                    |       88687  |
-| approveAndCall             |      143890  |
-| approveWithExpiration      |       58008  |
-| authorizeOperator          |       58375  |
-| burn                       |       74577  |
-| decreaseAllowance          |       60493  |
-| increaseAllowance          |       60112  |
-| operatorBurn               |       77476  |
-| operatorSend               |      116579  |
-| permit                     |       93923  |
-| revokeOperator             |       45130  |
-| safeTransfer               |      112730  |
-| safeTransferFrom           |      133631  |
-| send                       |      135994  |
-| transfer                   |       69903  |
-| transferAndCall            |      112359  |
-| transferFrom               |       82551  |
-| transferFromAndCall        |      146071  |
-
 ## Token API proposals not implemented by OmniToken
 
 There are several token standards or proposals that are intentionally not implemented by OmniToken, because they are incomplete, insecure/unsafe, or out of scope for OmniToken:

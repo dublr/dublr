@@ -67,11 +67,6 @@ interface IDublrDEX {
             uint256 amountMintedDUBLRWEI);
 
     /**
-     * @notice Emitted when 90% of the supplied buyer's ETH balance has been expended on buying sell orders
-     */
-    event OutOfGasForBuyingSellOrders(address indexed buyer, uint256 buyOrderRemainingETHWEI, uint256 totBoughtDUBLRWEI);
-
-    /**
      * @notice Emitted to return any change to the buyer from a `buy()` call, where the provided ETH amount was
      * not a whole multiple of the token price.
      *
@@ -234,8 +229,8 @@ interface IDublrDEX {
      *          by `10^9`.
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
      *          Must be less than or equal to the caller's balance. Additionally,
-     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than the
-     *          ETH value of gas supplied to run the function, to ensure the order size is not tiny.
+     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than
+     *          the value of `minSellOrderValueETHWEI()`, to ensure trivial orders don't waste gas.
      */
     function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external;
     
@@ -258,17 +253,14 @@ interface IDublrDEX {
      * to receive for a given ETH payable amount, by examining the order book (call `allSellOrders()` to get all
      * orderbook entries, and then sort them in increasing order of price).
      *
-     * A maximum of 90% of the supplied gas may be used to buy sell orders from the built-in DEX (to prevent
-     * gas exhaustion DoS attacks). If this gas limit is reached, buying will stop with the order partially filled,
-     * an `OutOfGasForBuyingSellOrders` event will be emitted to signify that the order was only partially filled,
-     * the unspent ETH balance will be returned to the buyer, and a `RefundChange` event will be emitted to inform
-     * the buyer of the refund. (Note that `minimumTokensToBuyOrMintDUBLRWEI` tokens must still be bought in this
-     * partially-filled order, otherwise the transaction will instead revert with "Out of gas".)
-     *
      * Change is also refunded to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
      * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded ETH payments for the
      * `buy()` function to succed: the buyer account must either be a non-contract wallet (an EOA), or a contract
      * that implements one of the payable `receive()` or `fallback()` functions to receive payment.
+     *
+     * For very large buy amounts with many small sell orders listed on the DEX, the amount of gas required to run the
+     * transaction may exceed the block gas limit. In this case, the only way to buy tokens is to reduce the ETH amount
+     * that is sent.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
