@@ -366,7 +366,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 priceETHPerDUBLR_x1e9: priceETHPerDUBLR_x1e9,
                 amountDUBLRWEI: amountDUBLRWEI}));
 
-        emit ListSell(seller, priceETHPerDUBLR_x1e9, amountDUBLRWEI);
+        emit ListForSale(seller, priceETHPerDUBLR_x1e9, amountDUBLRWEI);
     }
 
     // -----------------------------------------------------------------------------------------------------------------

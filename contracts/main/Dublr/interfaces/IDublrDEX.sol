@@ -25,7 +25,7 @@ interface IDublrDEX {
      * @param priceETHPerDUBLR_x1e9 The list price of the tokens, in ETH per DUBLR (multiplied by `10^9`).
      * @param amountDUBLRWEI The number of tokens listed for sale.
      */
-    event ListSell(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
+    event ListForSale(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
     /**
      * @notice Emitted when a sell order is canceled.
