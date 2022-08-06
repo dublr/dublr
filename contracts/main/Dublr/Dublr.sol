@@ -234,7 +234,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Add the order amount of the canceled sell order back into the seller's balance
         balanceOf[order.seller] += order.amountDUBLRWEI;
 
-        emit CancelSell(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
     }
 
     /**
@@ -276,7 +276,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             balanceOf[order.seller] += order.amountDUBLRWEI;
             delete sellerToHeapIdxPlusOne[order.seller];
             orderBook.pop();
-            emit CancelSell(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
         }
     }
 
@@ -366,7 +366,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 priceETHPerDUBLR_x1e9: priceETHPerDUBLR_x1e9,
                 amountDUBLRWEI: amountDUBLRWEI}));
 
-        emit ListForSale(seller, priceETHPerDUBLR_x1e9, amountDUBLRWEI);
+        emit ListSellOrder(seller, priceETHPerDUBLR_x1e9, amountDUBLRWEI);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -529,8 +529,8 @@ contract Dublr is DublrInternal, IDublrDEX {
             // We don't need to actually calculate this or store it anywhere, because we can calculate how much ETH is
             // left over from `msg.value` after sellers have been paid and buyer has received change.
 
-            // Emit Dublr Buy event
-            emit Buy(buyer, sellOrder.seller,
+            // Emit Dublr BuySellOrder event
+            emit BuySellOrder(buyer, sellOrder.seller,
                     sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
         }

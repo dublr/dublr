@@ -25,7 +25,7 @@ interface IDublrDEX {
      * @param priceETHPerDUBLR_x1e9 The list price of the tokens, in ETH per DUBLR (multiplied by `10^9`).
      * @param amountDUBLRWEI The number of tokens listed for sale.
      */
-    event ListForSale(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
+    event ListSellOrder(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
     /**
      * @notice Emitted when a sell order is canceled.
@@ -34,7 +34,7 @@ interface IDublrDEX {
      * @param priceETHPerDUBLR_x1e9 The price tokens were listed for, in ETH per DUBLR (multiplied by `10^9`).
      * @param amountDUBLRWEI The number of tokens that were listed for sale.
      */
-    event CancelSell(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
+    event CancelSellOrder(address indexed seller, uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
 
     /**
      * @notice Emitted when the a sell order is partially or fully purchased by a buyer.
@@ -50,7 +50,7 @@ interface IDublrDEX {
      * @param amountSentToSellerETHWEI The amount of ETH (in wei) transferred from the buyer to the seller.
      * @param amountChargedToBuyerETHWEI The amount of ETH (in wei) charged to the buyer, including fees.
      */
-    event Buy(address indexed buyer, address indexed seller,
+    event BuySellOrder(address indexed buyer, address indexed seller,
             uint256 priceETHPerDUBLR_x1e9, uint256 amountBoughtDUBLRWEI, uint256 amountRemainingInOrderDUBLRWEI,
             uint256 amountSentToSellerETHWEI, uint256 amountChargedToBuyerETHWEI);
 
