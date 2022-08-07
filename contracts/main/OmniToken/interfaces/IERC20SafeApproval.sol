@@ -41,10 +41,10 @@ interface IERC20SafeApproval {
      *
      * @param holder The token holder.
      * @param spender The spender granted an allowance.
-     * @param oldValue The previous value of the allowance.
-     * @param amount The new allowance to set.
+     * @param oldAmount The old allowance amount.
+     * @param newAmount The new allowance amount.
      */
-    event ApprovalInfo(address indexed holder, address indexed spender, uint256 oldValue, uint256 amount);
+    event ApprovalInfo(address indexed holder, address indexed spender, uint256 oldAmount, uint256 newAmount);
 
     /**
      * @notice Safely "compare and set" the allowance for a spender to spend your tokens.
