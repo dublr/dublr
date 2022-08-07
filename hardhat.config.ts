@@ -55,12 +55,12 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      // So that eth sent/received can be calculated without subtracting out gas used
+      // So that eth sent/received can be calculated without subtracting out gas used in tests
       initialBaseFeePerGas: 0,
     },
-    rinkeby: {
-      url: process.env.RINKEBY_INFURA_URL,
-      account: process.env.RINKEBY_PRIVATE_KEY,
+    goerli: {
+      url: process.env.GOERLI_INFURA_URL,
+      account: process.env.WALLET_PRIVATE_KEY,
     },
   },
 };
