@@ -19,6 +19,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 ## Longer overview
 
 **Supported token APIs:** Dublr builds on the [OmniToken](contracts/main/OmniToken) library, which supports a wide range of APIs for:
+  * sending/using tokens using the ERC20, ERC777, ERC1363, ERC4524 and EIP2612 APIs;
   * safe sending of ERC20-compatible tokens (to prevent the irretrievable loss of tokens when they are sent to the wrong address);
   * safe granting of 3rd party spending allowances (to counter a well-known "double allowance spend" vulnerability of ERC20);
   * time-limited allowances (so that forgotten allowances don't render a wallet vulnerable to being drained);
@@ -31,7 +32,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 
 **Mint price:** The mint price doubles every 90 days, equivalent to a compound interest rate for the _maximum_ price a coin may be sold for of 0.77% per day. The mint price increases exponentially at this rate over 30 doubling periods (7.5 years). The mint price puts a hard cap on how fast the price of Dublr tokens may grow, increasing total supply as needed to meet the demand, to keep tokens selling at the mint price or below. After 30 doubling periods, minting is permanently disabled, fixing the total supply forever. However, minting will probably stop long before the 30th doubling period due to the mint price eventually becoming exorbitant.
 
-**No promise of profits by the issuer:** No profit or return is guaranteed, promised, or predicted if DUBLR tokens are purchased or sold using the Dublr smart contract or any other trading platform. It is impossible to predict actual market behavior, DUBLR tokens can sell at any price, and sudden market events can cause significant loss. See the full [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md).
+**No promise of profits by the issuer:** No profit or return is guaranteed, promised, or predicted if DUBLR tokens are purchased or sold using the Dublr smart contract or any other trading platform. See below for the full Legal Agreement and Disclaimers.
 
 **Security:** Dublr is tightly secured against security vulnerabilities, via:
 
@@ -114,7 +115,9 @@ Collected fees are not used to fund any ongoing develompent, maintenance, or pro
 
 # LEGAL AGREEMENT AND DISCLAIMERS
 
-By electing to mint, buy, sell, gift, transmit, store, or otherwise use Dublr tokens (collectively, by using the Dublr token, or by using any functionality implemented by the Dublr smart contract), you agree to all terms of the [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md).
+**Disclaimers for SEC compliance:** No warranties or promises, express or implied, are made about the value or profitability of DUBLR tokens. The purchasing, sale, and use of DUBLR tokens is entirely at the purchaser's own risk. Purchasing DUBLR tokens does not constitute investment in a common enterprise, since no enterprise is attached to these tokens. DUBLR tokens may not be able to be sold without incurring loss, or may not be able to be sold at all if there is insufficient demand. Collected fees will not be used to fund any action beneficial to DUBLR token holders, and cannot be used to fund ongoing maintenance or improvement of the Dublr smart contract code, since no changes can be made to the deployed Dublr contract code after deployment.
+
+By buying, selling, or using DUBLR tokens, you signify that you agree to the full Dublr [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md).
 
 # Author
 
