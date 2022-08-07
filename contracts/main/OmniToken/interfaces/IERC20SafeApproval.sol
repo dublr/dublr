@@ -21,11 +21,11 @@ interface IERC20SafeApproval {
      * Ethers doesn't like contracts that have two events with the same name).
      *
      * @param spender The spender.
-     * @param from The sender.
-     * @param to The recipient.
+     * @param sender The sender.
+     * @param recipient The recipient.
      * @param amount The amount transferred (may be zero).
      */
-    event TransferInfo(address indexed spender, address indexed from, address indexed to, uint256 amount);
+    event TransferInfo(address indexed spender, address indexed sender, address indexed recipient, uint256 amount);
 
     /**
      * @notice Approval event for safe "compare and set" approval alternative.
