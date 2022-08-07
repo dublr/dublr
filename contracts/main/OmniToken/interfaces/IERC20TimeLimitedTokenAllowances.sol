@@ -16,12 +16,12 @@ interface IERC20TimeLimitedTokenAllowances {
      *
      * @param holder The token holder.
      * @param spender The spender.
-     * @param value The new allowance.
+     * @param amount The new allowance.
      * @param expirationTimestamp the block timestamp after which the approval will expire. (Note that this is
      *          the actual expiration timestamp, not the number of seconds the approval should last for, which
      *          is passed into `approveWithExpiration`.)
      */
-    event ApprovalWithExpiration(address indexed holder, address indexed spender, uint256 value,
+    event ApprovalWithExpiration(address indexed holder, address indexed spender, uint256 amount,
             uint256 expirationTimestamp);
 
     /**

@@ -23,9 +23,9 @@ interface IERC20SafeApproval {
      * @param spender The spender.
      * @param from The sender.
      * @param to The recipient.
-     * @param value The amount transferred (may be zero).
+     * @param amount The amount transferred (may be zero).
      */
-    event TransferInfo(address indexed spender, address indexed from, address indexed to, uint256 value);
+    event TransferInfo(address indexed spender, address indexed from, address indexed to, uint256 amount);
 
     /**
      * @notice Approval event for safe "compare and set" approval alternative.
@@ -42,9 +42,9 @@ interface IERC20SafeApproval {
      * @param holder The token holder.
      * @param spender The spender granted an allowance.
      * @param oldValue The previous value of the allowance.
-     * @param value The new allowance to set.
+     * @param amount The new allowance to set.
      */
-    event ApprovalInfo(address indexed holder, address indexed spender, uint256 oldValue, uint256 value);
+    event ApprovalInfo(address indexed holder, address indexed spender, uint256 oldValue, uint256 amount);
 
     /**
      * @notice Safely "compare and set" the allowance for a spender to spend your tokens.
