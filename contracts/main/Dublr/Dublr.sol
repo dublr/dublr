@@ -70,15 +70,6 @@ contract Dublr is DublrInternal, IDublrDEX {
         minSellOrderValueETHWEI = minValueETHWEI;
     }
 
-    /**
-     * @notice The maximum price a sell order can be listed for, as a ratio compared to the initial mint price.
-     * 1e15 => price can be 1 million billion times higher than the initial mint price. The mint price increases
-     * ~1 billion times during 30 doubling periods, so this allows a maximum further growth of 1 million times.
-     * The reason for the limit is to prevent sellers being able to trigger DoS for other users by causing
-     * integer overflow when price is multiplied by amount, etc.
-     */
-    uint256 private constant maxSellOrderPriceFactor = 1e15;
-
     // -----------------------------------------------------------------------------------------------------------------
     // Determine the current mint price, based on block timestamp
 
@@ -353,7 +344,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Make sure prices aren't exorbitant, to prevent DoS attacks where a seller triggers integer overflow
         // for other users.
-        require(priceETHPerDUBLR_x1e9 / maxSellOrderPriceFactor <= initialMintPriceETHPerDUBLR_x1e9,
+        require(priceETHPerDUBLR_x1e9 / MAX_SELL_ORDER_PRICE_FACTOR <= initialMintPriceETHPerDUBLR_x1e9,
                 "Price too high");
                 
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders

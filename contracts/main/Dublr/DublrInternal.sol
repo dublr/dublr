@@ -83,6 +83,15 @@ abstract contract DublrInternal is OmniToken {
      */
     uint256 internal constant SELLER_PAYMENT_FRACTION_FIXED_POINT = 0x3FE76C8B;
 
+    /**
+     * @notice The maximum price a sell order can be listed for, as a ratio compared to the initial mint price.
+     * 1e15 => price can be 1 million billion times higher than the initial mint price. The mint price increases
+     * ~1 billion times during 30 doubling periods, so this allows a maximum further growth of 1 million times.
+     * The reason for the limit is to prevent sellers being able to trigger DoS for other users by causing
+     * integer overflow when price is multiplied by amount, etc.
+     */
+    uint256 internal constant MAX_SELL_ORDER_PRICE_FACTOR = 1e15;
+
     // -----------------------------------------------------------------------------------------------------------------
     // Minting values set by the constructor
 
