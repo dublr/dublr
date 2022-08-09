@@ -285,7 +285,7 @@ abstract contract DublrInternal is OmniToken {
     }
     
     /** The fixed point multiplier for priceETHPerDUBLR_x1e9 prices (i.e. 1e9). */
-    uint256 internal constant _1e9 = 1e9;
+    uint256 internal constant PRICE_FIXED_POINT_MULTIPLIER = 1e9;
     
     /**
      * @dev Convert DUBLR to ETH, rounding up, then clamping the result to a given max value.
@@ -297,7 +297,8 @@ abstract contract DublrInternal is OmniToken {
      */
     function dublrToEthRoundUpClamped(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt, uint256 maxEthAmt)
             internal pure returns (uint256 equivEthAmt) {
-        uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + _1e9 - 1) / _1e9;
+        uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + PRICE_FIXED_POINT_MULTIPLIER - 1)
+                / PRICE_FIXED_POINT_MULTIPLIER;
         return ethAmt < maxEthAmt ? ethAmt : maxEthAmt;
     }
     
@@ -310,7 +311,7 @@ abstract contract DublrInternal is OmniToken {
      */
     function dublrToEthRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
             internal pure returns (uint256 equivEthAmt) {
-        return dublrAmt * priceETHPerDUBLR_x1e9 / _1e9;
+        return dublrAmt * priceETHPerDUBLR_x1e9 / PRICE_FIXED_POINT_MULTIPLIER;
     }
     
     /**
@@ -323,7 +324,7 @@ abstract contract DublrInternal is OmniToken {
     function dublrToEthLessMarketMakerFee(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
             internal pure returns (uint256 equivEthAmt) {
         // Round to nearest 1 ETH
-        uint256 denom = _1e9 * FIXED_POINT;
+        uint256 denom = PRICE_FIXED_POINT_MULTIPLIER * FIXED_POINT;
         return (dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
     }
     
@@ -336,7 +337,7 @@ abstract contract DublrInternal is OmniToken {
      */
     function ethToDublrRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 ethAmt)
             internal pure returns (uint256 equivDublrAmt) {
-        return ethAmt * _1e9 / priceETHPerDUBLR_x1e9;
+        return ethAmt * PRICE_FIXED_POINT_MULTIPLIER / priceETHPerDUBLR_x1e9;
     }
 }
 
