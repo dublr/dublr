@@ -83,12 +83,6 @@ abstract contract DublrInternal is OmniToken {
      */
     uint256 internal constant SELLER_PAYMENT_FRACTION_FIXED_POINT = 0x3FE76C8B;
 
-    /**
-     * @dev The maximum number of sell orders that can be bought at once, to prevent uncontrolled resource consumption
-     * DoS attacks. See: https://swcregistry.io/docs/SWC-128
-     */
-    uint256 internal constant MAX_SELL_ORDERS_PER_BUY = 20;
-
     // -----------------------------------------------------------------------------------------------------------------
     // Minting values set by the constructor
 
