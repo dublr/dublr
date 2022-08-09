@@ -95,8 +95,11 @@ abstract contract DublrInternal is OmniToken {
     // -----------------------------------------------------------------------------------------------------------------
     // Minting values set by the constructor
 
-    /** @dev The price of 1 DUBLR in ETH, times 1e9, when the constructor was called. */
-    uint256 internal initialMintPriceETHPerDUBLR_x1e9;
+    /**
+     * @notice The initial price of 1 DUBLR in ETH, multiplied by 1e9 (i.e. as a fixed point number),
+     * when the contract constructor was called.
+     */
+    uint256 public initialMintPriceETHPerDUBLR_x1e9;
 
     /** @dev The timestamp when the constructor was called. */
     uint256 internal initialMintTimestamp;
