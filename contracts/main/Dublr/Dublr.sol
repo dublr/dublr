@@ -32,10 +32,15 @@ contract Dublr is DublrInternal, IDublrDEX {
             OmniToken("Dublr", "DUBLR", "1", new address[](0), initialMintAmountDUBLR) {
         require(initialMintPrice_ETHPerDUBLR_x1e9 > 0, "Zero price");
         
-        // Record timestamp and initial mint price at contract creation time
-        initialMintPriceETHPerDUBLR_x1e9 = initialMintPrice_ETHPerDUBLR_x1e9;
+        // Record initial timestamp
         // solhint-disable-next-line not-rely-on-time
         initialMintTimestamp = block.timestamp;
+        
+        // Record initial mint price at contract creation time
+        initialMintPriceETHPerDUBLR_x1e9 = initialMintPrice_ETHPerDUBLR_x1e9;
+        
+        // Calculate maximum valid price for sell orders (prevents DoS via numerical overflow)
+        maxPriceETHPerDUBLR_x1e9 = initialMintPriceETHPerDUBLR_x1e9 * MAX_SELL_ORDER_PRICE_FACTOR;
 
         // Register DUBLR token via ERC1820
         registerInterfaceViaERC1820("DUBLRToken", true);
@@ -344,8 +349,7 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Make sure prices aren't exorbitant, to prevent DoS attacks where a seller triggers integer overflow
         // for other users.
-        require(priceETHPerDUBLR_x1e9 / MAX_SELL_ORDER_PRICE_FACTOR <= initialMintPriceETHPerDUBLR_x1e9,
-                "Price too high");
+        require(priceETHPerDUBLR_x1e9 <= maxPriceETHPerDUBLR_x1e9, "Price too high");
                 
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders
         // from different addresses, by making it costly to do this. We require that the total amount of the
