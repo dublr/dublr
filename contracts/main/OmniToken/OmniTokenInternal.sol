@@ -199,13 +199,13 @@ abstract contract OmniTokenInternal is
 
         // ERC20
         registerInterfaceViaERC165(type(IERC20).interfaceId, enable);
-
+/*
         // ERC20 increase/decrease allowance extension
         registerInterfaceViaERC165(type(IERC20IncreaseDecreaseAllowance).interfaceId, enable);
                 
         // ERC20 safe approval extension
         registerInterfaceViaERC165(type(IERC20SafeApproval).interfaceId, enable);
-
+*/
         // Don't register time-limited token allowance extension, because the OmniToken version uses seconds rather
         // than blocks for expiration, but the method type signature is the same
 
