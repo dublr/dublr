@@ -26,7 +26,6 @@ import "./interfaces/IERC4524.sol";
 import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
 import "./interfaces/IMultichain.sol";
-import "./interfaces/IParityRegistry.sol";
 
 /**
  * @title OmniTokenInternal
@@ -40,9 +39,6 @@ abstract contract OmniTokenInternal is
 
     /** @dev Creator/owner of the contract. */
     address immutable internal _owner;
-
-    /** @dev EIP712/EIP2612 constant domain separator fields. */
-    bytes32[] private domainSepFields;
 
     /**
      * @dev Constructor.
@@ -58,12 +54,6 @@ abstract contract OmniTokenInternal is
         name = tokenName;
         symbol = tokenSymbol;
         version = tokenVersion;
-
-        // Cache constant domain separator fields so that they don't have to be recomputed for each permit approval
-        domainSepFields.push(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
-        domainSepFields.push(keccak256(bytes(tokenName)));
-        domainSepFields.push(keccak256(bytes(tokenVersion)));
 
         // There must be an ERC1820 registry deployed on the network for ERC777
         require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
@@ -119,9 +109,9 @@ abstract contract OmniTokenInternal is
     function DOMAIN_SEPARATOR() public view override(IEIP2612) returns (bytes32) {
         return keccak256(
             abi.encode(
-                domainSepFields[0],
-                domainSepFields[1],
-                domainSepFields[2],
+                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+                name,
+                version,
                 // Domain separator must be dynamically generated to prevent sidechain replay attacks:
                 // https://github.com/dublr/dublr/issues/10
                 block.chainid,
@@ -141,7 +131,7 @@ abstract contract OmniTokenInternal is
      */
     modifier stateUpdater() {
         // Prevent reentrance
-        require(_extCallerDepth == 0, "Reentrance denied");
+        require(_extCallerDepth == 0, "Reentrance");
         // slither-disable-next-line reentrancy-eth
         unchecked { ++_stateUpdaterDepth; }
         _;
@@ -158,7 +148,7 @@ abstract contract OmniTokenInternal is
      * than a state-modifying function (stateUpdater), or vice versa.
      */
     modifier extCaller() {
-        require(_stateUpdaterDepth == 0, "Reentrance denied");
+        require(_stateUpdaterDepth == 0, "Reentrance");
         // slither-disable-next-line reentrancy-eth
         unchecked { ++_extCallerDepth; }
         _;
@@ -199,15 +189,18 @@ abstract contract OmniTokenInternal is
 
         // ERC20
         registerInterfaceViaERC165(type(IERC20).interfaceId, enable);
-/*
+
+        // Other interface registrations are disabled to save contract space
+        /*
         // ERC20 increase/decrease allowance extension
         registerInterfaceViaERC165(type(IERC20IncreaseDecreaseAllowance).interfaceId, enable);
                 
         // ERC20 safe approval extension
         registerInterfaceViaERC165(type(IERC20SafeApproval).interfaceId, enable);
-*/
+        
         // Don't register time-limited token allowance extension, because the OmniToken version uses seconds rather
         // than blocks for expiration, but the method type signature is the same
+        */
 
         registerInterfaceViaERC1820("ERC20Token", enable);
     }
@@ -539,31 +532,6 @@ abstract contract OmniTokenInternal is
         // extCaller modifier not required, since the ERC1820 registry is known and trusted
         return IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
                 .getInterfaceImplementer(addrToQuery, keccak256(bytes(interfaceName)));
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
-    // Register a function name with Parity's function registnry, used by MetaMask to get function names
-    // https://docs.metamask.io/guide/registering-function-names.html
-    
-    /** The Parity function registry contract on mainnet. */
-    address private constant PARITY_REGISTRY_ADDR = 0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86;
-    
-    /**
-     * @dev Register a function name with Parity's function registry, used by MetaMask to get function names
-     * from function selectors. Returns silently if registration fails.
-     *
-     * @param functionSignature The function signature to register, without param names.
-     */
-    function registerFunctionWithParity(string memory functionSignature) internal {
-        // `catch` won't catch "Transaction reverted: function call to a non-contract account",
-        // so have to check isContract first.
-        if (isContract(PARITY_REGISTRY_ADDR)) {
-            try IParityRegistry(PARITY_REGISTRY_ADDR).register(functionSignature) {
-                // Success
-            } catch {
-                // Ignore failures
-            }
-        }
     }
 
     // -----------------------------------------------------------------------------------------------------------------

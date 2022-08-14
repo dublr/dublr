@@ -18,6 +18,19 @@ async function main() {
     const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
     const balanceAfter = await signer.getBalance();
     const deploymentCost = balanceBefore.sub(balanceAfter);
+    
+    // Register Dublr DEX functions with Parity registry, since this is used by MetaMask
+    // to look up function names: https://docs.metamask.io/guide/registering-function-names.html
+    const PARITY_REGISTRY_ADDR = "0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86";
+    const PARITY_ABI = ["function register(string memory method) external"];
+    const parityContract = new ethers.Contract(PARITY_REGISTRY_ADDR, PARITY_ABI, signer);
+    try {
+        await parityContract.register("buy(uint256,bool,bool)");
+        await parityContract.register("sell(uint256,uint256)");
+        await parityContract.register("cancelMySellOrder()");
+    } catch (e) {
+        console.log("Could not register methods in Parity registry:", e.message);
+    }
 
     console.log("Token address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost) + " ETH");
