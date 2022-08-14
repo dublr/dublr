@@ -1377,14 +1377,55 @@ contract OmniToken is OmniTokenInternal {
             uint8 v, bytes32 r, bytes32 s) external eip2612 override(IEIP2612) {
             
         // Check whether permit is valid (reverts if not)
+        uint256 nonce;
+        unchecked { nonce = nonces[holder]++; }
         checkPermit(deadline,
-                keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonces[holder]++, deadline)),
+                keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonce, deadline)),
                 v, r, s, /* requiredSigner = */ holder);
                 
         // Approve amount allowed in the permit
         _approve(holder, spender, amount,
                 // Use the default allowance expiration time
                 defaultAllowanceExpirationTime(), "");
+    }
+
+    /**
+     * @notice Allow permitted transfers in the style of EIP2612.
+     *
+     * @dev This is not part of the EIP2612 standard; however, it is implemented in AnySwap's ERC20
+     * token template ( https://github.com/anyswap/chaindata/blob/main/AnyswapV6ERC20.sol ),
+     * and it adds a missing symmetry between ERC1363 and EIP2612.
+     *
+     * @notice By calling this function, you confirm that this token is not considered an unregistered or
+     * illegal security, and that this smart contract is not considered an unregistered or illegal exchange,
+     * by the laws of any legal jurisdiction in which you hold or use tokens, or any legal jurisdiction
+     * of the holder or spender.
+     * 
+     * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is
+     * a taxable event. It is your responsibility to record the purchase price and sale price in ETH or
+     * your local currency for each use, transfer, or sale of tokens you own, and to pay the taxes due.
+     *
+     * @param holder The token holder that signed the certificate.
+     * @param recipient The recipient of the tokens.
+     * @param amount The number of tokens that `msg.sender` has been authorized to transfer on behalf of `holder`.
+     * @param deadline The block timestamp after which the certificate expires.
+     * @param v The ECDSA certificate `v` value.
+     * @param r The ECDSA certificate `r` value.
+     * @param s The ECDSA certificate `s` value.
+     */
+    function transferWithPermit(address holder, address recipient, uint256 amount, uint256 deadline,
+            uint8 v, bytes32 r, bytes32 s) external eip2612 returns (bool success) {
+            
+        // Check whether permit is valid (reverts if not)
+        uint256 nonce;
+        unchecked { nonce = nonces[holder]++; }
+        checkPermit(deadline,
+                keccak256(abi.encode(TRANSFER_PERMIT_TYPEHASH, holder, recipient, amount, nonce, deadline)),
+                v, r, s, /* requiredSigner = */ holder);
+                
+        // Transfer requested amount
+        _transfer(/* operator = */ msg.sender, holder, recipient, amount, /* useAllowance = */ false, "", "");
+        return true;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -1412,7 +1453,6 @@ contract OmniToken is OmniTokenInternal {
             // Only registered Multichain routers can call this method
             public multichainRouterOnly
             override(IMultichain) returns (bool success) {
-        require(from != address(0), "Bad arg");
         _burn(msg.sender, from, amount, "", "");
         return true;
     }
