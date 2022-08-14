@@ -324,8 +324,12 @@ contract OmniToken is OmniTokenInternal {
 
         // PRECONDITIONS [CHECKS]:
 
-        require(operator != address(0) && holder != address(0) && recipient != address(0), "Bad arg");
-        // Zero amount is valid for ERC20 transfers, for some reason (even though it's wasteful)
+        require(operator != address(0) && holder != address(0)
+                && recipient != address(0)
+                // Don't allow sending tokens to this contract address, to catch accidental copy/paste errors.
+                && recipient != address(this),
+                "Bad arg");
+        // Zero amount is valid for ERC20 transfers, for some reason (even though it's wasteful).
 
         // PERFORM TRANSFER [EFFECTS]:
 
