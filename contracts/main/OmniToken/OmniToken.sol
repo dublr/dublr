@@ -19,6 +19,7 @@ import "./interfaces/IERC777.sol";
 import "./interfaces/IERC1363.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IEIP2612.sol";
+import "./interfaces/IMultichain.sol";
 
 /**
  * @title OmniToken
@@ -1393,5 +1394,42 @@ contract OmniToken is OmniTokenInternal {
                 // Use the default allowance expiration time
                 defaultAllowanceExpirationTime(), "");
     }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Multichain bridging support
+    
+    /**
+     * @notice Only callable by Multichain cross-chain router bridges.
+     * @dev Mints tokens for a Multichain router -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     */
+    function mint(address to, uint256 amount)
+            // Only registered Multichain routers can call this method
+            public multichainRouterOnly
+            override(IMultichain) returns (bool success) {
+        _mint(msg.sender, to, amount, "", "");
+        return true;
+    }
+    
+    /**
+     * @notice Only callable by Multichain cross-chain router bridges.
+     * @dev Burns tokens for a Multichain router -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     */
+    function burn(address from, uint256 amount)
+            // Only registered Multichain routers can call this method
+            public multichainRouterOnly
+            override(IMultichain) returns (bool success) {
+        require(from != address(0), "Bad arg");
+        _burn(msg.sender, from, amount, "", "");
+        return true;
+    }
+    
+    /**
+     * @notice Used by Multichain cross-chain router bridges to detect the bridge API.
+     * @dev See:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     */
+    address public immutable override(IMultichain) underlying = address(0);
 }
 

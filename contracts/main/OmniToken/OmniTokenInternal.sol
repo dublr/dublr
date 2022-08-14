@@ -27,6 +27,7 @@ import "./interfaces/IERC1363Receiver.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
+import "./interfaces/IMultichain.sol";
 import "./interfaces/IParityRegistry.sol";
 
 /**
@@ -37,7 +38,7 @@ import "./interfaces/IParityRegistry.sol";
 abstract contract OmniTokenInternal is 
                       IERC20, IERC20Optional, IERC20Burn,
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
-                      IERC777, IERC1363, IERC4524, IEIP2612 {
+                      IERC777, IERC1363, IERC4524, IEIP2612, IMultichain {
 
     /** @dev Creator/owner of the contract. */
     address immutable internal _owner;
@@ -346,6 +347,32 @@ abstract contract OmniTokenInternal is
     /** @dev Require EIP2612 permit support to be enabled. */
     modifier eip2612() {
         require(_EIP2612Enabled, "Disabled");
+        _;
+    }
+
+    // --------------
+    
+    /** @dev true if Multichain routers may mint and burn tokens. */
+    bool internal _multichainEnabled;
+
+    /** @dev Whether an address is an authorized Multichain router. */
+    mapping(address => bool) internal isMultichainRouter;
+
+    function _owner_authorizeMultichainRouter(address routerAddr, bool authorize) public ownerOnly {
+        isMultichainRouter[routerAddr] = authorize;
+    }
+
+    /**
+     * @notice Only callable by the owner/deployer of the contract.
+     * @dev Enable or disable burning and minting of tokens by Multichain routers.
+     */
+    function _owner_enableMultichain(bool enable) public ownerOnly {
+        _multichainEnabled = enable;
+    }
+
+    /** @dev Require EIP2612 permit support to be enabled. */
+    modifier multichainRouterOnly() {
+        require(_multichainEnabled && isMultichainRouter[msg.sender], "Not authorized");
         _;
     }
 
