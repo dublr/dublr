@@ -138,21 +138,23 @@ contract Dublr is DublrInternal, IDublrDEX {
         // This approximation is accurate to within 3% per doubling period, with the biggest error
         // at the latest (30th) doubling period.
         
-        // Convert the value (ln(2) * t / DOUBLING_PERIOD_SEC) to fixed point
-        uint256 x = LN2_FIXED_POINT * t / DOUBLING_PERIOD_SEC;
-        // x = 1 + x/1024
-        x = FIXED_POINT + x / 1024;
-        // x = x**1024
-        // Obtained via 10 iterations, since x**(2**10) == x**1024
-        for (uint256 i = 0; i < 10; ) {
-            // slither-disable-next-line divide-before-multiply
-            x = x * x / FIXED_POINT;
-            unchecked { ++i; }  // Save gas
+        unchecked {
+            // Convert the value (ln(2) * t / DOUBLING_PERIOD_SEC) to fixed point
+            uint256 x = LN2_FIXED_POINT * t / DOUBLING_PERIOD_SEC;
+            // x = 1 + x/1024
+            x = FIXED_POINT + x / 1024;
+            // x = x**1024
+            // Obtained via 10 iterations, since x**(2**10) == x**1024
+            for (uint256 i = 0; i < 10; ) {
+                // slither-disable-next-line divide-before-multiply
+                x = x * x / FIXED_POINT;
+                unchecked { ++i; }  // Save gas
+            }
+            // x is now an estimate of p, the factor increase in price, in fixed point.
+            // Multiply x by the initial mint price to get the current mint price in fixed point,
+            // then convert back from fixed point
+            return x * initialMintPriceETHPerDUBLR_x1e9 / FIXED_POINT;
         }
-        // x is now an estimate of p, the factor increase in price, in fixed point.
-        // Multiply x by the initial mint price to get the current mint price in fixed point,
-        // then convert back from fixed point
-        return x * initialMintPriceETHPerDUBLR_x1e9 / FIXED_POINT;
     }
     
     // -----------------------------------------------------------------------------------------------------------------
