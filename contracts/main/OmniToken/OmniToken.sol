@@ -1097,9 +1097,7 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev [ERC1363] Transfer tokens from `holder` to `recipient`, and then call the ERC1363 spender
      * interface's `onApprovalReceived` on the recipient.
-     * If this fails, falls back to calling ERC677's `onTokenTransfer` function on the recipient (since the
-     * ERC677 `transferFromAndCall(address,address,bytes)` API has the same signature as the ERC1363 API).
-     * The transaction will fail if the recipient does not implement one of these interfaces,
+     * The transaction will fail if the recipient does not implement the required interface,
      * including if the recipient address is an EOA address.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
@@ -1131,9 +1129,7 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev [ERC1363] Transfer tokens from `holder` to `recipient`, and then call the ERC1363 spender
      * interface's `onApprovalReceived` on the recipient.
-     * If this fails, falls back to calling ERC677's `onTokenTransfer` function on the recipient (since the
-     * ERC677 `transferFromAndCall(address,address,bytes)` API has the same signature as the ERC1363 API).
-     * The transaction will fail if the recipient does not implement one of these interfaces,
+     * The transaction will fail if the recipient does not implement the required interface,
      * including if the recipient address is an EOA address.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
@@ -1165,9 +1161,7 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev [ERC1363] Approve `spender` to spend the specified number of tokens on behalf of
      * caller (the token holder), and then call `onApprovalReceived` on spender.
-     * If this fails, falls back to calling ERC677's `onTokenApproval` function on the recipient (since the
-     * ERC677 `approveAndCall(address,address,bytes)` API has the same signature as the ERC1363 API).
-     * The transaction will fail if the recipient does not implement one of these interfaces,
+     * The transaction will fail if the recipient does not implement the required interface,
      * including if the recipient address is an EOA address.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
@@ -1197,9 +1191,7 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev [ERC1363] Approve `spender` to spend the specified number of tokens on behalf of
      * caller (the token holder), and then call `onApprovalReceived` on spender.
-     * If this fails, falls back to calling ERC677's `onTokenApproval` function on the recipient (since the
-     * ERC677 `approveAndCall(address,address,bytes)` API has the same signature as the ERC1363 API).
-     * The transaction will fail if the recipient does not implement one of these interfaces,
+     * The transaction will fail if the recipient does not implement the required interface,
      * including if the recipient address is an EOA address.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
