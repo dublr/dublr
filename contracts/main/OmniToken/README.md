@@ -252,6 +252,13 @@ interface IEIP2612 {
 }
 ```
 
+OmniToken also supports an [AnySwap extension to EIP2612](https://github.com/anyswap/chaindata/blob/main/AnyswapV6ERC20.sol) that allows permitted transfers:
+
+```
+    function transferWithPermit(address holder, address recipient, uint256 amount, uint256 deadline,
+            uint8 v, bytes32 r, bytes32 s) external eip2612 returns (bool success);
+```
+
 In JavaScript, EIP2612 permits can be signed using [`eth-permit`](https://www.npmjs.com/package/eth-permit) as follows:
 
 ```
@@ -265,6 +272,18 @@ Then a spending allowance can be obtained for a spender wallet by calling the EI
 ```
 await omniTokenContract["permit(address,address,uint256,uint256,uint8,bytes32,bytes32)"](
         holderWallet.address, spenderWallet.address, numTokens, sig.deadline, sig.v, sig.r, sig.s);
+```
+
+## [Multichain bridging](https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards)
+
+OmniToken also supports the Multichain (formerly AnySwap) cross-chain bridging API, which allows authorized routers to burn and mint tokens in order to transfer balances between chains. (No routers are authorized by default.)
+
+```
+interface IMultichain {
+    function mint(address to, uint256 amount) external multichainRouterOnly returns (bool success);
+    function burn(address from, uint256 amount) external multichainRouterOnly returns (bool success);
+    function underlying() external view returns(address);
+}
 ```
 
 ## Contract owner API
