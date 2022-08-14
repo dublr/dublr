@@ -137,22 +137,27 @@ contract Dublr is DublrInternal, IDublrDEX {
         //
         // This approximation is accurate to within 3% per doubling period, with the biggest error
         // at the latest (30th) doubling period.
-        
+
+        // None of these calculations can overflow, so use unchecked math
         unchecked {
             // Convert the value (ln(2) * t / DOUBLING_PERIOD_SEC) to fixed point
+            // Max value: ln(2) * FIXED_POINT * NUM_DOUBLING_PERIODS
             uint256 x = LN2_FIXED_POINT * t / DOUBLING_PERIOD_SEC;
-            // x = 1 + x/1024
+            // x = (1 + x/1024) in fixed point
             x = FIXED_POINT + x / 1024;
             // x = x**1024
             // Obtained via 10 iterations, since x**(2**10) == x**1024
+            // Max value of x is smaller than 2^30 times the original value of x.
             for (uint256 i = 0; i < 10; ) {
                 // slither-disable-next-line divide-before-multiply
                 x = x * x / FIXED_POINT;
-                unchecked { ++i; }  // Save gas
+                ++i;
             }
             // x is now an estimate of p, the factor increase in price, in fixed point.
             // Multiply x by the initial mint price to get the current mint price in fixed point,
-            // then convert back from fixed point
+            // then convert back from fixed point.
+            // Max value before division still stays within uint256 range for all reasonable
+            // values of initialMintPriceETHPerDUBLR_x1e9.
             return x * initialMintPriceETHPerDUBLR_x1e9 / FIXED_POINT;
         }
     }
