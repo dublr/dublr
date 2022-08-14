@@ -4,13 +4,13 @@
 
 ## tl;dr
 
-Dublr is a fungible token smart contract that implements several token standards (ERC20, ERC777, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
+Dublr is a fungible token smart contract that implements several token standards (ERC20, ERC777, ERC677, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
 ## Short overview
 
 Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain. Dublr has some very unique features:
 
-* Dublr is a token smart contract that is compatible with many different token APIs (ERC20, ERC777, ERC1363, ERC4524, and EIP2612 permits), making it maximally flexible and useful. [OmniToken](contracts/main/OmniToken) is the foundation that provides this broad API compatibility.
+* Dublr is a token smart contract that is compatible with many different token APIs, making it maximally flexible and useful. [OmniToken](contracts/main/OmniToken) is the foundation that provides this broad API compatibility.
 * Dublr is also its own built-in decentralized exchange or DEX (sell-side only), meaning that sellers can list Dublr tokens for sale, and buyers can buy Dublr tokens, using the Dublr contract itself.
 * The supply of DUBLR tokens is created by on-demand minting at the current _mint price_ (in ETH per DUBLR), when demand exceeds supply below the mint price, rather than via ICO or airdrop.
 * The maximum value of the DUBLR/ETH exchange rate is fixed by the current mint price. The actual price at which Dublr tokens can be bought is the minimum out of the current mint price and the price of the cheapest sell order currently listed on the built-in DEX.
@@ -19,7 +19,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 ## Longer overview
 
 **Supported token APIs:** Dublr builds on the [OmniToken](contracts/main/OmniToken) library, which supports a wide range of APIs for:
-  * sending/using tokens using the ERC20, ERC777, ERC1363, ERC4524 and EIP2612 APIs;
+  * sending/using tokens using the ERC20, ERC777, ERC677, ERC1363, ERC4524 and EIP2612 APIs;
   * safe sending of ERC20-compatible tokens (to prevent the irretrievable loss of tokens when they are sent to the wrong address);
   * safe granting of 3rd party spending allowances (to counter a well-known "double allowance spend" vulnerability of ERC20);
   * time-limited allowances (so that forgotten allowances don't render a wallet vulnerable to being drained);
@@ -87,7 +87,7 @@ Note that there is no guarantee of sufficient demand or liquidity on the buy sid
 
 Use your MetaMask wallet to send tokens to another wallet.
 
-For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC777, ERC1363, or ERC4524 APIs](contracts/main/OmniToken) to send, spend, or use Dublr tokens, or to approve token spenders.
+For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC777, ERC677, ERC1363, ERC4524, or EIP2612 APIs](contracts/main/OmniToken) to send, spend, or use Dublr tokens, or to approve token spenders.
 
 ## Contract info
 

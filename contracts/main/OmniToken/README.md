@@ -12,19 +12,20 @@ OmniToken implements all major Ethereum fungible token standards in a single tok
 
 * The [ERC20 token standard](https://eips.ethereum.org/EIPS/eip-20).
 * The [ERC777 token standard](https://eips.ethereum.org/EIPS/eip-777). This replaces ERC20's `approve`/`transferFrom` mechanism with a system of authorized operators that have authority to transfer tokens on behalf of another contract. ERC777 also requires the recipient of tokens to implement a receiver interface so that the recipient must declare its ability to receive tokens for a `send` operation to succeed. The sender of tokens can also optionally implement a sender interface. The receiver (and optionally also the sender) must declare that they support ERC777 by registering their API using ERC1820.
+* The [ERC677 draft](https://github.com/ethereum/EIPs/issues/677), which never made it to standard status. ERC677 is superceded by ERC1363, which is a cleaner and more robust version of the same standard, but ERC677 saw some adoption in the wild, e.g. in AnySwap tokens. However, since both standards use the same method names `transferAndCall` and `approveAndCall`, with the same method signatures, but with different notification interfaces, OmniToken implements the ERC677 recipient/spender notification calls as a transparent fallback from ERC1363, whenever the ERC677/ERC1363 API is called, but ERC1363 receipient/spender notification fails.
 * The [ERC1363 standard](https://eips.ethereum.org/EIPS/eip-1363) for safe transfer of tokens to ERC165-registered recipients. This API enables not just recipients but also spenders/operators to be notified after they have been approved to spend funds (in contrast with ERC777, which is able to notify senders/token holders, but not spenders/operators). ERC1363 has already seen some adoption, e.g. in the [FriendsFingers DAO](https://www.friendsfingers.com/dao/), and it is being added to OpenZeppelin.
 * The [ERC4524 draft standard](https://eips.ethereum.org/EIPS/eip-4524) for safe transfer of tokens to ERC165-registered recipients. This is implemented despite being a draft, because of its simplicity. It is similar to ERC777, but simpler: ERC4524 relies on the standard allowance system rather than ERC777's complex operator approval system; ERC4524 requires recipients to register their supported APIs via ERC165 rather than the ERC1820 system that ERC777 uses; and ERC4524 only supports receiver notification, not sender notification.
 * The [EIP2612 permit](https://eips.ethereum.org/EIPS/eip-2612) mechanism for ERC712/ERC1271-signed token permitting/approval via secp256k1 signatures.
 
 ## Comparison between the token APIs supported by OmniToken
 
-| Feature                              | ERC20     | ERC777                | ERC1363   | ERC4524   | EIP2612          |
-| ---                                  | :---:     | :---:                 | :---:     | :---:     | :---:            |
-| Operator/spender permission via      | Allowance | Grant/revoke operator | Allowance | Allowance | Permit allowance |
-| Sender/holder notification hook      | No        | Optional              | No        | No        | No               |
-| Spender/operator notification hook   | No        | No                    | Required  | No        | No               |
-| Receiver/recipient notification hook **\***| No  | Required if non-EOA   | Required  | Required if non-EOA | No     |
-| Hook registration API                | N/A       | ERC1820               | ERC165    | ERC165    | N/A              |
+| Feature                              | ERC20     | ERC777                | ERC677      | ERC1363   | ERC4524             | EIP2612          |
+| ---                                  | :---:     | :---:                 | :---:       | :---:     | :---:               | :---:            |
+| Operator/spender permission via      | Allowance | Grant/revoke operator | Allowance   | Allowance | Allowance           | Permit allowance |
+| Sender/holder notification hook      | No        | Optional              | No          | No        | No                  | No               |
+| Spender/operator notification hook   | No        | No                    | Nonstandard | Required  | No                  | No               |
+| Receiver/recipient notification hook **\***| No  | Required if non-EOA   | Required    | Required  | Required if non-EOA | No               |
+| Hook registration API                | N/A       | ERC1820               | N/A         | ERC165    | ERC165              | N/A              |
 
 **\* Receiver/recipient notification hook:** ERC20 and the EIP2612 permitting system allow for tokens to be sent to any contract, but OmniToken disallows this, breaking with the ERC20 standard in order to increase safety (see below). ERC777 and ERC4524 reject sending to contracts that do not implement the required receiver interface, but they do not reject sending to an EOA (Externally Owned Account / a standard non-contract wallet address). ERC1363 rejects sending to and spending by EOAs, but also to/by contracts that do not implement the receiver/spender interface.
 

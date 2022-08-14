@@ -19,6 +19,8 @@ import "./interfaces/IERC20TimeLimitedTokenAllowances.sol";
 import "./interfaces/IERC777.sol";
 import "./interfaces/IERC777Sender.sol";
 import "./interfaces/IERC777Recipient.sol";
+import "./interfaces/IERC677TransferReceiver.sol";
+import "./interfaces/IERC677ApprovalReceiver.sol";
 import "./interfaces/IERC1363.sol";
 import "./interfaces/IERC1363Spender.sol";
 import "./interfaces/IERC1363Receiver.sol";
@@ -73,6 +75,7 @@ abstract contract OmniTokenInternal is
         // Enable and register interfaces
         _owner_enableERC20(true);
         _owner_enableERC777(true);
+        _owner_enableERC677(true);
         _owner_enableERC1363(true);
         _owner_enableERC4524(true);
         _owner_enableEIP2612(true);
@@ -257,8 +260,20 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
+    /** @dev true if the ERC677 API is enabled. */
+    bool internal _ERC677Enabled;
+
     /** @dev true if the ERC1363 API is enabled. */
     bool internal _ERC1363Enabled;
+
+    /**
+     * @notice Only callable by the owner/deployer of the contract.
+     * @dev Enable or disable ERC677 support in the API.
+     */
+    function _owner_enableERC677(bool enable) public ownerOnly {
+        _ERC677Enabled = enable;
+        // ERC677 never made it to full standard status, so don't bother registering this API
+    }
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
@@ -612,9 +627,23 @@ abstract contract OmniTokenInternal is
             internal extCaller {
         // `spender` must declare it implements ERC1363 spender interface via ERC165
         string memory errMsg = "Not ERC1363 spender";
-        require(contractSupportsInterface(spender, type(IERC1363Spender).interfaceId), errMsg);
-        require(IERC1363Spender(spender).onApprovalReceived(holder, amount, data)
-                == type(IERC1363Spender).interfaceId, errMsg);
+        if (contractSupportsInterface(spender, type(IERC1363Spender).interfaceId)) {
+            require(IERC1363Spender(spender).onApprovalReceived(holder, amount, data)
+                    == type(IERC1363Spender).interfaceId, errMsg);
+            // ERC1363 success
+            return;
+        } else if (_ERC677Enabled && isContract(spender)) {
+            // The ERC1263 approveAndCall(address,uint256,bytes) interface has the same signature as
+            // a proposed extension to the ERC677 interface (which is in use by AnySwap), so try falling
+            // back to the ERC677 interface
+            try IERC677ApprovalReceiver(spender).onTokenApproval(holder, amount, data) {
+                // ERC677 success
+                return;
+            } catch {
+                // Fall through and fail
+            }
+        }
+        revert(errMsg);
     }
 
     /**
@@ -632,9 +661,22 @@ abstract contract OmniTokenInternal is
             internal extCaller {
         // `recipient` must declare it implements ERC1363 recipient interface via ERC165
         string memory errMsg = "Not ERC1363 recipient";
-        require(contractSupportsInterface(recipient, type(IERC1363Receiver).interfaceId), errMsg);
-        require(IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data)
-                == type(IERC1363Receiver).interfaceId, errMsg);
+        if (contractSupportsInterface(recipient, type(IERC1363Receiver).interfaceId)) {
+            require(IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data)
+                    == type(IERC1363Receiver).interfaceId, errMsg);
+            // ERC1363 success
+            return;
+        } else if (_ERC677Enabled && isContract(recipient)) {
+            // The ERC1263 transferAndCall(address,uint256,bytes) interface has the same signature as
+            // the ERC677 interface, so try falling back to the ERC677 interface
+            try IERC677TransferReceiver(recipient).onTokenTransfer(sender, amount, data) {
+                // ERC677 success
+                return;
+            } catch {
+                // Fall through and fail
+            }
+        }
+        revert(errMsg);
     }
 
     /**
