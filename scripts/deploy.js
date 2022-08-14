@@ -14,6 +14,7 @@ async function main() {
     // initialMintDUBLRWEI = mintETHWEIEquiv / mintPrice
     // == 2000000000000000000000000000 DUBLR wei (2B DUBLR, 10k ETH equiv @ 0.000005 ETH per DUBLR)
     const balanceBefore = await signer.getBalance();
+    // TODO: specify nonce = 0 so that all chains have the same contract addr?
     const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
     const balanceAfter = await signer.getBalance();
     const deploymentCost = balanceBefore.sub(balanceAfter);

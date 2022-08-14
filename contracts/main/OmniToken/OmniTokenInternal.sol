@@ -442,9 +442,9 @@ abstract contract OmniTokenInternal is
      * 
      * @param interfaceId The result of xor-ing together the function selectors of all functions in the interface
      * of interest.
-     * @return implementsInterface `true` if this contract implements the requested interface.
+     * @return supported `true` if this contract implements the requested interface.
      */
-    function supportsInterface(bytes4 interfaceId) external view override(IERC165) returns (bool implementsInterface) {
+    function supportsInterface(bytes4 interfaceId) external view override(IERC165) returns (bool supported) {
         return _supportedInterfaces[interfaceId];
     }
 
@@ -460,19 +460,19 @@ abstract contract OmniTokenInternal is
      *
      * @param contractAddr The contract address.
      * @param interfaceId The interface id.
-     * @param errMsgOnFail The error message to revert with, if the contract does not support the interface.
+     * @return supported `true` if this contract supports the requested interface.
      */
-    function requireContractSupportsInterface(address contractAddr, bytes4 interfaceId, string memory errMsgOnFail)
+    function contractSupportsInterface(address contractAddr, bytes4 interfaceId)
             // Use extCaller modifier for reentrancy protection
-            internal extCaller {
-        require(isContract(contractAddr), errMsgOnFail);
-        bool supported;
-        try IERC165(contractAddr).supportsInterface(interfaceId) returns (bool result) {
-            supported = result;
-        } catch {
-            supported = false;
+            internal extCaller returns (bool supported) {
+        if (isContract(contractAddr)) {
+            try IERC165(contractAddr).supportsInterface(interfaceId) returns (bool result) {
+                return result;
+            } catch {
+                // Fall through
+            }
         }
-        require(supported, errMsgOnFail);
+        return false;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -612,7 +612,7 @@ abstract contract OmniTokenInternal is
             internal extCaller {
         // `spender` must declare it implements ERC1363 spender interface via ERC165
         string memory errMsg = "Not ERC1363 spender";
-        requireContractSupportsInterface(spender, type(IERC1363Spender).interfaceId, errMsg);
+        require(contractSupportsInterface(spender, type(IERC1363Spender).interfaceId), errMsg);
         require(IERC1363Spender(spender).onApprovalReceived(holder, amount, data)
                 == type(IERC1363Spender).interfaceId, errMsg);
     }
@@ -632,7 +632,7 @@ abstract contract OmniTokenInternal is
             internal extCaller {
         // `recipient` must declare it implements ERC1363 recipient interface via ERC165
         string memory errMsg = "Not ERC1363 recipient";
-        requireContractSupportsInterface(recipient, type(IERC1363Receiver).interfaceId, errMsg);
+        require(contractSupportsInterface(recipient, type(IERC1363Receiver).interfaceId), errMsg);
         require(IERC1363Receiver(recipient).onTransferReceived(operator, sender, amount, data)
                 == type(IERC1363Receiver).interfaceId, errMsg);
     }
@@ -654,7 +654,7 @@ abstract contract OmniTokenInternal is
         if (isContract(recipient)) {
             // `recipient` must declare it implements ERC4524 recipient interface via ERC165
             string memory errMsg = "Not ERC4524 recipient";
-            requireContractSupportsInterface(recipient, type(IERC4524Recipient).interfaceId, errMsg);
+            require(contractSupportsInterface(recipient, type(IERC4524Recipient).interfaceId), errMsg);
             require(IERC4524Recipient(recipient).onERC20Received(operator, sender, amount, data)
                     == type(IERC4524Recipient).interfaceId, errMsg);
         }
