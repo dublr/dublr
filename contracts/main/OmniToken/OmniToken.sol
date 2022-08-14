@@ -1385,8 +1385,6 @@ contract OmniToken is OmniTokenInternal {
             
         // Check whether permit is valid (reverts if not)
         checkPermit(deadline,
-                // The EIP712 domain prefix
-                "\x19\x01",
                 keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonces[holder]++, deadline)),
                 v, r, s, /* requiredSigner = */ holder);
                 
