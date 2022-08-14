@@ -6,7 +6,7 @@
 //
 // Officially hosted at: https://github.com/dublr/dublr
 
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import "./interfaces/IERC165.sol";
 import "./interfaces/IERC1820Registry.sol";

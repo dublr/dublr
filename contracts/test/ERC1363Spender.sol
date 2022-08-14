@@ -6,7 +6,7 @@
  *  from ERC1363 token contracts.
  */
 
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import "../main/OmniToken/interfaces/IERC1363Spender.sol";
 import "../main/Dublr/Dublr.sol";

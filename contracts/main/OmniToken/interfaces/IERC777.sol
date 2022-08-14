@@ -4,7 +4,7 @@
 // Modified from:
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC777/IERC777.sol
 
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 /**
  * @dev Interface of the ERC777Token standard as defined in the ERC777.
