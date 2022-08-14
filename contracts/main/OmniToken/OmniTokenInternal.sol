@@ -337,8 +337,11 @@ abstract contract OmniTokenInternal is
 
     // --------------
     
-    /** @dev true if Multichain routers may mint and burn tokens. */
-    bool internal _multichainEnabled;
+    /**
+     * @dev true if Multichain routers may mint and burn tokens.
+     * Enabled by default, but there are no authorized routers by default.
+     */
+    bool internal _multichainEnabled = true;
 
     /** @dev Whether an address is an authorized Multichain router. */
     mapping(address => bool) internal isMultichainRouter;
@@ -351,7 +354,7 @@ abstract contract OmniTokenInternal is
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable burning and minting of tokens by Multichain routers.
      */
-    function _owner_enableMultichain(bool enable) public ownerOnly {
+    function _owner_enableMultichainRouting(bool enable) public ownerOnly {
         _multichainEnabled = enable;
     }
 

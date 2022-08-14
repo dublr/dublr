@@ -1388,7 +1388,7 @@ contract OmniToken is OmniTokenInternal {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Multichain bridging support
+    // Multichain bridge support
     
     /**
      * @notice Only callable by Multichain cross-chain router bridges.
