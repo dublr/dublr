@@ -599,7 +599,7 @@ abstract contract OmniTokenInternal is
     }
 
     /**
-     * @dev Call the ERC1363 spender's `onApprovalReceived` function. Must be called after contract state is finalized.
+     * @dev Call the ERC1363 spender's `onApprovalReceived` function.
      *
      * @param holder The address holding the tokens being spent.
      * @param spender The address spending the tokens.
@@ -618,7 +618,7 @@ abstract contract OmniTokenInternal is
     }
 
     /**
-     * @dev Call the ERC1363 receiver's `onTransferReceived` function. Must be called after contract state is finalized.
+     * @dev Call the ERC1363 receiver's `onTransferReceived` function.
      *
      * @param operator address The address which called `transferAndCall` or `transferFromAndCall` function.
      * @param sender address The address which are token transferred from.
@@ -638,7 +638,7 @@ abstract contract OmniTokenInternal is
     }
 
     /**
-     * @dev Call the ERC4524 recipient's `onERC20Received` function. Must be called after contract state is finalized.
+     * @dev Call the ERC4524 recipient's `onERC20Received` function.
      *
      * @param operator The address performing the send or mint.
      * @param sender The address holding the tokens being sent.
@@ -650,7 +650,7 @@ abstract contract OmniTokenInternal is
             address operator, address sender, address recipient, uint256 amount, bytes memory data)
             // Use extCaller modifier for reentrancy protection
             internal extCaller {
-        // Sending to an EOA always succeeds, by falling through to the return statement
+        // Sending to an EOA (non-contract) always succeeds for ERC4524
         if (isContract(recipient)) {
             // `recipient` must declare it implements ERC4524 recipient interface via ERC165
             string memory errMsg = "Not ERC4524 recipient";

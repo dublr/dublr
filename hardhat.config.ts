@@ -4,6 +4,7 @@ import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
 import "solidity-coverage";
 import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-ethers";
@@ -63,6 +64,10 @@ module.exports = {
       account: process.env.WALLET_PRIVATE_KEY,
     },
   },
+  contractSizer: {
+    runOnCompile: true,
+    only: ["Dublr", "OmniToken"],
+  }
 };
 
 export default config;
