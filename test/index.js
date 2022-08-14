@@ -279,7 +279,7 @@ describe("OmniToken", () => {
       await contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
       expect(true).to.equal(false);  // Fail if call succeeds
     } catch (error) {
-      expect(error.message).to.contain("Reentrance denied");
+      expect(error.message).to.contain("Reentrance");
     }
   });
 

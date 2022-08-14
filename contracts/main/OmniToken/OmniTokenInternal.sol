@@ -37,9 +37,6 @@ abstract contract OmniTokenInternal is
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
                       IERC777, IERC1363, IERC4524, IEIP2612, IMultichain {
 
-    /** @dev Creator/owner of the contract. */
-    address immutable internal _owner;
-
     /**
      * @dev Constructor.
      *
@@ -54,6 +51,10 @@ abstract contract OmniTokenInternal is
         name = tokenName;
         symbol = tokenSymbol;
         version = tokenVersion;
+
+        domainFields.push(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
+        domainFields.push(keccak256(bytes(name)));
+        domainFields.push(keccak256(bytes(version)));
 
         // There must be an ERC1820 registry deployed on the network for ERC777
         require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
@@ -73,11 +74,20 @@ abstract contract OmniTokenInternal is
     // -----------------------------------------------------------------------------------------------------------------
     // Functions common to multiple interfaces
 
-    /** @notice The number of tokens owned by a given address. */
-    mapping(address => uint256) public override(IERC20, IERC777) balanceOf;
+    /** @dev The number of functions on the stack that modify contract state. */
+    uint256 private _stateUpdaterDepth;
+
+    /** @dev The number of functions on the stack that call external contracts. */
+    uint256 private _extCallerDepth;
+
+    /** @notice The ERC777 granularity. (Hardcoded to 1, for maximum compatibility with ERC20.) */
+    uint256 public constant override(IERC777) granularity = 1;
 
     /** @notice The total supply of tokens. */
     uint256 public override(IERC20, IERC777) totalSupply;
+
+    /** @notice The number of tokens owned by a given address. */
+    mapping(address => uint256) public override(IERC20, IERC777) balanceOf;
 
     /** @notice The name of the token. */
     string public override(IERC20Optional, IERC777) name;
@@ -94,8 +104,11 @@ abstract contract OmniTokenInternal is
      */
     uint8 public constant override(IERC20Optional) decimals = 18;
 
-    /** @notice The ERC777 granularity. (Hardcoded to 1, for maximum compatibility with ERC20.) */
-    uint256 public constant override(IERC777) granularity = 1;
+    /** @dev Creator/owner of the contract. */
+    address immutable internal _owner;
+
+    /** @dev Constant domain separator fields. */
+    bytes32[] private domainFields;
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -109,9 +122,9 @@ abstract contract OmniTokenInternal is
     function DOMAIN_SEPARATOR() public view override(IEIP2612) returns (bytes32) {
         return keccak256(
             abi.encode(
-                keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-                name,
-                version,
+                domainFields[0],
+                domainFields[1],
+                domainFields[2],
                 // Domain separator must be dynamically generated to prevent sidechain replay attacks:
                 // https://github.com/dublr/dublr/issues/10
                 block.chainid,
@@ -120,9 +133,6 @@ abstract contract OmniTokenInternal is
 
     // -----------------------------------------------------------------------------------------------------------------
     // Function modifiers
-
-    /** @dev The number of functions on the stack that modify contract state. */
-    uint256 private _stateUpdaterDepth;
 
     /**
      * @dev Reentrancy protection for functions that modify account state. Disallows a state-modifying
@@ -138,9 +148,6 @@ abstract contract OmniTokenInternal is
         // slither-disable-next-line reentrancy-eth
         unchecked { --_stateUpdaterDepth; }
     }
-
-    /** @dev The number of functions on the stack that call external contracts. */
-    uint256 private _extCallerDepth;
 
     /**
      * @dev Reentrancy protection for functions that modify account state. Disallows a function that
@@ -178,6 +185,27 @@ abstract contract OmniTokenInternal is
     /** @dev true if the ERC20 API is enabled. */
     bool internal _ERC20Enabled;
 
+    /** @dev true if the ERC777 API is enabled. */
+    bool internal _ERC777Enabled;
+
+    /** @dev true if the ERC1363 API is enabled. */
+    bool internal _ERC1363Enabled;
+
+    /** @dev true if the ERC4524 API is enabled. */
+    bool internal _ERC4524Enabled;
+
+    /** @dev true if the EIP2612 permit API is enabled. */
+    bool internal _EIP2612Enabled;
+
+    /** The number of function calls in the stack for functions marked with the erc777 modifier. */
+    uint256 internal _erc777CallDepth;
+
+    /** The number of function calls in the stack for functions marked with the erc1363 modifier. */
+    uint256 internal _erc1363CallDepth;
+
+    /** The number of function calls in the stack for functions marked with the erc4524 modifier. */
+    uint256 internal _erc4524CallDepth;
+
     /**
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable ERC20 support in the API.
@@ -190,7 +218,7 @@ abstract contract OmniTokenInternal is
         // ERC20
         registerInterfaceViaERC165(type(IERC20).interfaceId, enable);
 
-        // Other interface registrations are disabled to save contract space
+        // Other interface registrations are disabled to save on contract space
         /*
         // ERC20 increase/decrease allowance extension
         registerInterfaceViaERC165(type(IERC20IncreaseDecreaseAllowance).interfaceId, enable);
@@ -200,9 +228,9 @@ abstract contract OmniTokenInternal is
         
         // Don't register time-limited token allowance extension, because the OmniToken version uses seconds rather
         // than blocks for expiration, but the method type signature is the same
-        */
 
         registerInterfaceViaERC1820("ERC20Token", enable);
+        */
     }
 
     /** @dev Require ERC20 to be enabled. */
@@ -213,9 +241,6 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if the ERC777 API is enabled. */
-    bool internal _ERC777Enabled;
-
     /**
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable ERC777 support in the API.
@@ -225,11 +250,8 @@ abstract contract OmniTokenInternal is
         
         registerInterfaceViaERC165(type(IERC777).interfaceId, enable);
         
-        registerInterfaceViaERC1820("ERC777Token", enable);
+        // registerInterfaceViaERC1820("ERC777Token", enable);
     }
-
-    /** The number of function calls in the stack for functions marked with the erc777 modifier. */
-    uint256 internal _erc777CallDepth;
 
     /** @dev Require ERC777 to be enabled, and mark the ERC777 API as active. */
     modifier erc777() {
@@ -251,9 +273,6 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if the ERC1363 API is enabled. */
-    bool internal _ERC1363Enabled;
-
     /**
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable ERC1363 support in the API.
@@ -263,11 +282,8 @@ abstract contract OmniTokenInternal is
 
         registerInterfaceViaERC165(type(IERC1363).interfaceId, enable);
 
-        registerInterfaceViaERC1820("ERC1363Token", enable);
+        // registerInterfaceViaERC1820("ERC1363Token", enable);
     }
-
-    /** The number of function calls in the stack for functions marked with the erc1363 modifier. */
-    uint256 internal _erc1363CallDepth;
 
     /** @dev Require ERC1363 to be enabled, and mark the ERC1363 API as active. */
     modifier erc1363() {
@@ -279,9 +295,6 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if the ERC4524 API is enabled. */
-    bool internal _ERC4524Enabled;
-
     /**
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable ERC4524 support in the API (may only be called by the contract creator).
@@ -291,11 +304,8 @@ abstract contract OmniTokenInternal is
         
         registerInterfaceViaERC165(type(IERC4524).interfaceId, enable);
         
-        registerInterfaceViaERC1820("ERC4524Token", enable);
+        // registerInterfaceViaERC1820("ERC4524Token", enable);
     }
-
-    /** The number of function calls in the stack for functions marked with the erc4524 modifier. */
-    uint256 internal _erc4524CallDepth;
 
     /** @dev Require ERC4524 to be enabled, and mark the ERC4524 API as active. */
     modifier erc4524() {
@@ -307,9 +317,6 @@ abstract contract OmniTokenInternal is
 
     // --------------
 
-    /** @dev true if the EIP2612 permit API is enabled. */
-    bool internal _EIP2612Enabled;
-
     /**
      * @notice Only callable by the owner/deployer of the contract.
      * @dev Enable or disable EIP2612 permit support in the API.
@@ -319,7 +326,7 @@ abstract contract OmniTokenInternal is
 
         registerInterfaceViaERC165(type(IEIP2612).interfaceId, enable);
 
-        registerInterfaceViaERC1820("ERC2612Permit", enable);
+        // registerInterfaceViaERC1820("ERC2612Permit", enable);
     }
 
     /** @dev Require EIP2612 permit support to be enabled. */

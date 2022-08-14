@@ -22,11 +22,6 @@ contract Dublr is DublrInternal, IDublrDEX {
     // Constructor
 
     /**
-     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
-     */
-    uint256 public override(IDublrDEX) minSellOrderValueETHWEI = 0.01 ether;
-
-    /**
      * @dev Constructor.
      * @param initialMintPrice_ETHPerDUBLR_x1e9 the numerator of the initial price of DUBLR in
      *          ETH per DUBLR token, multiplied by 1e9 (as a fixed point representation).
@@ -56,6 +51,11 @@ contract Dublr is DublrInternal, IDublrDEX {
 
     // -----------------------------------------------------------------------------------------------------------------
     // Minimum sell order value (mitigates DEX DoS attacks by sellers)
+
+    /**
+     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
+     */
+    uint256 public override(IDublrDEX) minSellOrderValueETHWEI = 0.01 ether;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
