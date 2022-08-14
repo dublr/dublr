@@ -1383,12 +1383,11 @@ contract OmniToken is OmniTokenInternal {
     function permit(address holder, address spender, uint256 amount, uint256 deadline,
             uint8 v, bytes32 r, bytes32 s) external eip2612 override(IEIP2612) {
             
-        // Get and update nonce
-        uint256 nonce = nonces[holder]++;
-        
         // Check whether permit is valid (reverts if not)
         checkPermit(deadline,
-                keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonce, deadline)),
+                // The EIP712 domain prefix
+                "\x19\x01",
+                keccak256(abi.encode(EIP2612_PERMIT_TYPEHASH, holder, spender, amount, nonces[holder]++, deadline)),
                 v, r, s, /* requiredSigner = */ holder);
                 
         // Approve amount allowed in the permit

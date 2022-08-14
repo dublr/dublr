@@ -55,15 +55,18 @@ describe("OmniToken", () => {
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(1000);
   });
 
-  it("ERC20: Transfer adds amount to destination account and subtracts from sender account", async () => {
-    await contract0._owner_enableTransferToContracts(false);
-    await expect(contract0["transfer(address,uint256)"](contract0.address, 7))
-            .to.be.revertedWith("Can't transfer to a contract");
+  it("ERC20: Transfer adds amount to recipient and subtracts from sender", async () => {
     await contract0["transfer(address,uint256)"](wallet[1].address, 7);
     expect(await contract0.balanceOf(wallet[1].address)).to.equal(7);
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(993);
+  });
+
+  it("ERC20: enableTransferToContracts", async () => {
+    await contract0._owner_enableTransferToContracts(false);
+    await expect(contract0["transfer(address,uint256)"](contractERC1820Registry.address, 7))
+            .to.be.revertedWith("Can't transfer to a contract");
     await contract0._owner_enableTransferToContracts(true);
-    await contract0["transfer(address,uint256)"](contract0.address, 7);
+    await contract0["transfer(address,uint256)"](contractERC1820Registry.address, 7);
   });
 
   it("ERC20: Can transfer full balance", async () => {

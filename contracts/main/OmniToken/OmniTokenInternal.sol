@@ -754,13 +754,14 @@ abstract contract OmniTokenInternal is
      * @dev Check permit certificate. Reverts if certificate is not valid.
      *
      * @param deadline The block timestamp after which the certificate is invalid.
+     * @param domainPrefix The domain prefix.
      * @param keccak256ABIEncoding The result of calling `keccak256(abi.encode(...))` with the `Permit` call typehash.
      * @param v The ECDSA `v` value.
      * @param r The ECDSA `r` value.
      * @param s The ECDSA `s` value.
      * @param requiredSigner The required value of the address recovered from the signature.
      */
-    function checkPermit(uint256 deadline, bytes32 keccak256ABIEncoding,
+    function checkPermit(uint256 deadline, bytes memory domainPrefix, bytes32 keccak256ABIEncoding,
             uint8 v, bytes32 r, bytes32 s, address requiredSigner) internal view {
         // solhint-disable-next-line not-rely-on-time
         require(block.timestamp <= deadline, "Expired");
@@ -785,7 +786,7 @@ abstract contract OmniTokenInternal is
         // Recover address of signer from digest, and check it matches the required signer (the token holder)
         // The \x19 prefix is part of the Recursive Length Prefix (RLP) encoding:
         // https://blog.ricmoo.com/verifying-messages-in-solidity-50a94f82b2ca
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), keccak256ABIEncoding));
+        bytes32 digest = keccak256(abi.encodePacked(domainPrefix, DOMAIN_SEPARATOR(), keccak256ABIEncoding));
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(recoveredAddress != address(0) && recoveredAddress == requiredSigner, "Bad sig");
     }
