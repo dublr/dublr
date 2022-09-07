@@ -1393,7 +1393,7 @@ contract OmniToken is OmniTokenInternal {
      * @notice Allow permitted transfers in the style of EIP2612.
      *
      * @dev This is not part of the EIP2612 standard; however, it is implemented in AnySwap's ERC20
-     * token template ( https://github.com/anyswap/chaindata/blob/main/AnyswapV6ERC20.sol ),
+     * token template ( https://github.com/anyswap/chaindata/blob/main/AnyswapV5ERC20.sol ),
      * and it adds a missing symmetry between ERC1363 and EIP2612.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
