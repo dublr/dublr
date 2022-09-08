@@ -1440,7 +1440,7 @@ contract OmniToken is OmniTokenInternal {
             // Only registered Multichain routers can call this method
             public multichainRouterOnly
             override(IMultichain) returns (bool success) {
-        _mint(msg.sender, to, amount, "", "");
+        _mint(msg.sender, to, amount, "Multichain", "");
         return true;
     }
     
@@ -1453,7 +1453,7 @@ contract OmniToken is OmniTokenInternal {
             // Only registered Multichain routers can call this method
             public multichainRouterOnly
             override(IMultichain) returns (bool success) {
-        _burn(msg.sender, from, amount, "", "");
+        _burn(msg.sender, from, amount, "Multichain", "");
         return true;
     }
     
