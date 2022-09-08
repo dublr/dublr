@@ -346,6 +346,10 @@ abstract contract OmniTokenInternal is
     /** @dev Whether an address is an authorized Multichain router. */
     mapping(address => bool) internal isMultichainRouter;
 
+    /**
+     * @notice Only callable by the owner/deployer of the contract.
+     * @dev Authorize or deauthorize a Multichain router.
+     */
     function _owner_authorizeMultichainRouter(address routerAddr, bool authorize) public ownerOnly {
         isMultichainRouter[routerAddr] = authorize;
     }
@@ -358,7 +362,10 @@ abstract contract OmniTokenInternal is
         _multichainEnabled = enable;
     }
 
-    /** @dev Require EIP2612 permit support to be enabled. */
+    /**
+     * @dev Functions with this modifier are only callable by multichain routers,
+     * and only when multichain routing is enabled.
+     */
     modifier multichainRouterOnly() {
         require(_multichainEnabled && isMultichainRouter[msg.sender], "Not authorized");
         _;
