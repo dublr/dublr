@@ -46,11 +46,23 @@ contract OmniToken is OmniTokenInternal {
     uint256 internal constant UNLIMITED_EXPIRATION = type(uint256).max;
 
     /**
+     * @dev The minimum value of the `expirationSec` parameter of the `approveWithExpiration` function.
+     *
+     * Note that the block timestamp can be altered by miners up to about +/-15 seconds under proof of work
+     * (as long as block timestamps increase monotonically), so do not use an allowance expiration time of less
+     * than 15 seconds for PoW networks. For proof of stake, the block interval is set to exactly 12 seconds,
+     * so the min expiration time should probably be set to 13 seconds or more for PoS networks.
+     */
+    uint256 internal constant MIN_EXPIRATION_SEC = 13;
+
+    /**
      * @notice The default number of seconds that an allowance is valid for, after the allowance or permit
      * is granted, before the allowance expires.
      *
-     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds (as long as block
-     * timestamps increase monotonically), so do not use an allowance expiration time of less than 15 seconds.
+     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds under proof of work
+     * (as long as block timestamps increase monotonically), so do not use an allowance expiration time of less
+     * than 15 seconds for PoW networks. For proof of stake, the block interval is set to exactly 12 seconds,
+     * so the expiration time should probably be set to 13 seconds or more for PoS networks.
      *
      * @dev Call `_owner_setDefaultAllowanceExpirationSec(type(uint256).max)` as the contract owner
      * if you want allowances never to expire, for backwards compatibility with ERC20, or pass a smaller
@@ -65,8 +77,10 @@ contract OmniToken is OmniTokenInternal {
      * `type(uint256).max == 2**256-1` if you want allowances never to expire, for backwards compatibility
      * with ERC20.
      *
-     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds (as long as block
-     * timestamps increase monotonically), so do not use an allowance expiration time of less than 15 seconds.
+     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds under proof of work
+     * (as long as block timestamps increase monotonically), so do not use an allowance expiration time of less
+     * than 15 seconds for PoW networks. For proof of stake, the block interval is set to exactly 12 seconds,
+     * so the expiration time should probably be set to 13 seconds or more for PoS networks.
      *
      * You can utilize a different expiration time on a case-by-case basis by calling `approveWithExpiration`.
      *
@@ -791,8 +805,10 @@ contract OmniToken is OmniTokenInternal {
      *
      * See: https://github.com/vrypan/EIPs/blob/master/EIPS/eip-draft_time_limited_token_allowances.md
      *
-     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds (as long as block
-     * timestamps increase monotonically), so do not use an allowance expiration time of less than 15 seconds.
+     * @dev Note that the block timestamp can be altered by miners up to about +/-15 seconds under proof of work
+     * (as long as block timestamps increase monotonically), so do not use an allowance expiration time of less
+     * than 15 seconds for PoW networks. For proof of stake, the block interval is set to exactly 12 seconds,
+     * so the expiration time should probably be set to 13 seconds or more for PoS networks.
      *
      * Note that by default (unless the behavior was changed by the contract owner/deployer), the allowance
      * has to be set to zero before it can be set to a non-zero amount, to prevent the well-known ERC20 allowance
@@ -824,8 +840,7 @@ contract OmniToken is OmniTokenInternal {
             // Have to set allowance to zero (or let it expire) before it can be set to non-zero
             require(allowance(/* holder = */ msg.sender, spender) == 0, "Curr allowance nonzero");
         }
-        // Timestamps can be fudged up to 15 seconds by miners, so expirationSec needs to be greater than 15
-        require(expirationSec > 15, "expirationSec must be >15");
+        require(expirationSec >= MIN_EXPIRATION_SEC, "expirationSec<MIN_EXPIRATION_SEC");
         _approve(/* holder = */ msg.sender, spender, amount,
                 expirationSec == UNLIMITED_EXPIRATION ? expirationSec
                         // solhint-disable-next-line not-rely-on-time
