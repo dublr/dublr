@@ -342,7 +342,7 @@ abstract contract OmniTokenInternal is
     /**
      * @dev true if Multichain routers may mint and burn tokens.
      */
-    bool internal _multichainEnabled = true;
+    bool internal _multichainEnabled = false;
 
     /** @dev Whether an address is an authorized Multichain router. */
     mapping(address => bool) internal isMultichainRouter;
@@ -364,8 +364,8 @@ abstract contract OmniTokenInternal is
     }
 
     /**
-     * @dev Functions with this modifier are only callable by multichain routers,
-     * and only when multichain routing is enabled.
+     * @dev Functions with this modifier are only callable if Multichain routing is enabled,
+     * and `msg.sender` is an authorized Multichain router.
      */
     modifier multichainRouterOnly() {
         require(_multichainEnabled && isMultichainRouter[msg.sender], "Not authorized");
