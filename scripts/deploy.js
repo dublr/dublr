@@ -1,6 +1,10 @@
 const { ethers } = require("hardhat");
 
-// Run with: npx hardhat run --network rinkeby scripts/deploy.js 
+// Run with: npx hardhat run --network goerli scripts/deploy.js 
+
+// Note: deployment should be the first thing that is done with the deploying wallet
+// on every chain, so that nonce = 0 on deployment to each chain, so that the contract
+// gets the same address on all chains.
 
 async function main() {
     const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY, ethers.provider);
@@ -14,7 +18,6 @@ async function main() {
     // initialMintDUBLRWEI = mintETHWEIEquiv / mintPrice
     // == 2000000000000000000000000000 DUBLR wei (2B DUBLR, 10k ETH equiv @ 0.000005 ETH per DUBLR)
     const balanceBefore = await signer.getBalance();
-    // TODO: specify nonce = 0 so that all chains have the same contract addr?
     const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
     const balanceAfter = await signer.getBalance();
     const deploymentCost = balanceBefore.sub(balanceAfter);
@@ -40,6 +43,6 @@ async function main() {
 main()
     .then(() => process.exit(0))
     .catch((error) => {
-    console.error(error);
-    process.exit(1);
+        console.error(error);
+        process.exit(1);
     });
