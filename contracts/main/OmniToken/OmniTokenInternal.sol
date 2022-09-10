@@ -25,6 +25,7 @@ import "./interfaces/IERC1363Receiver.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
+import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
 
 /**
@@ -35,7 +36,8 @@ import "./interfaces/IMultichain.sol";
 abstract contract OmniTokenInternal is 
                       IERC20, IERC20Optional, IERC20Burn,
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
-                      IERC777, IERC1363, IERC4524, IEIP2612, IMultichain {
+                      IERC777, IERC1363, IERC4524, IEIP2612, ITransferWithPermit,
+                      IMultichain {
 
     /**
      * @dev Constructor.
@@ -339,7 +341,6 @@ abstract contract OmniTokenInternal is
     
     /**
      * @dev true if Multichain routers may mint and burn tokens.
-     * Enabled by default, but there are no authorized routers by default.
      */
     bool internal _multichainEnabled = true;
 

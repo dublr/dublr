@@ -19,6 +19,7 @@ import "./interfaces/IERC777.sol";
 import "./interfaces/IERC1363.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IEIP2612.sol";
+import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
 
 /**
@@ -1408,8 +1409,8 @@ contract OmniToken is OmniTokenInternal {
      * @notice Allow permitted transfers in the style of EIP2612.
      *
      * @dev This is not part of the EIP2612 standard; however, it is implemented in AnySwap's ERC20
-     * token template ( https://github.com/anyswap/chaindata/blob/main/AnyswapV5ERC20.sol ),
-     * and it adds a missing symmetry between ERC1363 and EIP2612.
+     * token template V5 ( https://github.com/anyswap/chaindata/blob/main/AnyswapV5ERC20.sol ),
+     * and it provides useful functionality.
      *
      * @notice By calling this function, you confirm that this token is not considered an unregistered or
      * illegal security, and that this smart contract is not considered an unregistered or illegal exchange,
@@ -1429,7 +1430,8 @@ contract OmniToken is OmniTokenInternal {
      * @param s The ECDSA certificate `s` value.
      */
     function transferWithPermit(address holder, address recipient, uint256 amount, uint256 deadline,
-            uint8 v, bytes32 r, bytes32 s) external eip2612 returns (bool success) {
+            uint8 v, bytes32 r, bytes32 s) external eip2612 override(ITransferWithPermit)
+            returns (bool success) {
             
         // Check whether permit is valid (reverts if not)
         uint256 nonce;
