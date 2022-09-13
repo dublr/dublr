@@ -486,24 +486,14 @@ describe("OmniToken", () => {
   it("Multichain: needs authorized router", async () => {
     await expect(contract0["mint(address,uint256)"](wallet[0].address, 1000))
             .to.be.revertedWith("Not authorized");
-    await contract0._owner_authorizeMultichainRouter(wallet[0].address, true);
-    await expect (contract0["mint(address,uint256)"](wallet[0].address, 1000))
-            .to.be.revertedWith("Not authorized");
-    await contract0._owner_enableMultichainRouting(true);
+    await contract0._owner_authorizeMinter(wallet[0].address, true);
     await contract0["mint(address,uint256)"](wallet[0].address, 1000);
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(2000);
-    await contract0._owner_authorizeMultichainRouter(wallet[0].address, false);
-    await expect(contract0["mint(address,uint256)"](wallet[0].address, 1000))
+    await expect(contract0["burn(address,uint256)"](wallet[0].address, 500))
             .to.be.revertedWith("Not authorized");
-    await contract0._owner_authorizeMultichainRouter(wallet[0].address, true);
-    await contract0["mint(address,uint256)"](wallet[0].address, 1000);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(3000);
+    await contract0._owner_authorizeBurner(wallet[0].address, true);
     await contract0["burn(address,uint256)"](wallet[0].address, 500);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(2500);
-    await contract0._owner_enableMultichainRouting(false);
-    await expect(contract0["burn(address,uint256)"](wallet[0].address, 1000))
-            .to.be.revertedWith("Not authorized");
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(2500);
+    expect(await contract0.balanceOf(wallet[0].address)).to.equal(1500);
   });
 
 });

@@ -6,7 +6,7 @@
 //
 // Officially hosted at: https://github.com/dublr/dublr
 
-pragma solidity 0.8.16;
+pragma solidity 0.8.17;
 
 import "./OmniTokenInternal.sol";
 import "./interfaces/IERC20.sol";
@@ -21,6 +21,7 @@ import "./interfaces/IERC4524.sol";
 import "./interfaces/IEIP2612.sol";
 import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
+import "./interfaces/IPolygonBridgeable.sol";
 
 /**
  * @title OmniToken
@@ -1446,39 +1447,73 @@ contract OmniToken is OmniTokenInternal {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Multichain bridge support
+    // Cross-chain bridge/router support
     
     /**
-     * @notice Only callable by Multichain cross-chain router bridges.
-     * @dev Mints tokens for a Multichain router -- see:
-     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
-     */
-    function mint(address to, uint256 amount)
-            // Only registered Multichain routers can call this method
-            public multichainRouterOnly
-            override(IMultichain) returns (bool success) {
-        _mint(msg.sender, to, amount, "Multichain", "");
-        return true;
-    }
-    
-    /**
-     * @notice Only callable by Multichain cross-chain router bridges.
-     * @dev Burns tokens for a Multichain router -- see:
-     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
-     */
-    function burn(address from, uint256 amount)
-            // Only registered Multichain routers can call this method
-            public multichainRouterOnly
-            override(IMultichain) returns (bool success) {
-        _burn(msg.sender, from, amount, "Multichain", "");
-        return true;
-    }
-    
-    /**
-     * @notice Used by Multichain cross-chain router bridges to detect the bridge API.
+     * @notice Used by Multichain cross-chain routers to detect the supported router mode.
+     *
      * @dev See:
      * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
      */
     address public immutable override(IMultichain) underlying = address(0);
+    
+    /**
+     * @notice Only callable by Multichain cross-chain routers.
+     *
+     * @dev Burns tokens for a Multichain router -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     */
+    function burn(address from, uint256 amount)
+            external override(IMultichain) returns (bool success) {
+        // Only registered burners can call this method
+        require(isBurner[msg.sender], "Not authorized");
+        _burn(msg.sender, from, amount, "", "");
+        return true;
+    }
+
+    /**
+     * @notice Called on the Polygon contract when user wants to withdraw tokens from Polygon back to Ethereum.
+     *
+     * @dev Burns the caller's tokens. Should only be called on the Polygon network, and this is only one step
+     * of all the required steps to complete the transfer of assets back to Ethereum:
+     * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/getting-started/#withdrawals
+     *
+     * @param amount amount of tokens to withdraw
+     */
+    function withdraw(uint256 amount)
+            external override(IPolygonBridgeable) {
+        _burn(msg.sender, msg.sender, amount, "", "");
+    }
+    
+    /**
+     * @notice Only callable by Multichain cross-chain routers or the Polygon PoS bridge's MintableERC20PredicateProxy.
+     *
+     * @dev Mints tokens for a Multichain router or the Polygon PoS bridge -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
+     */
+    function mint(address to, uint256 amount)
+            external override(IMultichain) returns (bool success) {
+        // Only registered minters can call this method
+        require(isMinter[msg.sender], "Not authorized");
+        _mint(msg.sender, to, amount, "", "");
+        return true;
+    }
+
+    /**
+     * @notice Only callable by the Polygon PoS bridge's ChildChainManager.
+     *
+     * @dev Called on the Polygon contract when tokens are deposited on the Polygon chain.
+     *
+     * @param user address to deposit tokens for
+     * @param depositData ABI-encoded amount
+     */
+    function deposit(address user, bytes calldata depositData)
+            external override(IPolygonBridgeable) {
+        // Only registered minters can call this method
+        require(isMinter[msg.sender], "Not authorized");
+        uint256 amount = abi.decode(depositData, (uint256));
+        _mint(msg.sender, user, amount, "", "");
+    }
 }
 

@@ -1,0 +1,43 @@
+
+Deploying:
+
+Deploy a Dublr contract on Ethereum and a corresponding OmniToken contract on Polgyon (or other chain).
+
+Verify both contracts on Polygonscan and Etherscan.
+
+To enable Multichain routing:
+
+    - Listing the two contracts as a Multichain swap pair:
+        https://docs.multichain.org/for-partners/for-partners/faq
+        https://dard6erxu8t.typeform.com/to/C7RwF08A?typeform-source=multichain.org
+
+    - On Ethereum Dublr/OmniToken contract, call:
+            _owner_authorizeMinter(addr, true)
+            _owner_authorizeBurner(addr, true)
+        where addr is the Ethereum Multichain router address obtained from the listing request above.
+
+    - On secondary chain contract, call:
+            _owner_authorizeMinter(addr, true)
+            _owner_authorizeBurner(addr, true)
+        where addr is the secondary chain Multichain router address obtained from the listing request above.
+
+To enable Polygon PoS bridging:
+
+    - On Ethereum Dublr/OmniToken contract, call:
+            _owner_authorizeMinter(addr, true)
+        where addr is MintableAssetProxy (which has PREDICATE_ROLE in the Polygon example code):
+            Ethereum Goerli testnet: 0x37c3bfC05d5ebF9EBb3FF80ce0bd0133Bf221BC8
+            Ethereum mainnet: 0x9923263fA127b3d1484cFD649df8f1831c2A74e4
+        This allows the MintableAssetProxy to call `mint(address to, uint256 amount)`.
+
+    - On Polygon OmniToken contract, call:
+            _owner_authorizeMinter(addr, true)
+        where addr is ChildChainManager (which has DEPOSITOR_ROLE in the Polygon example code):
+            Polygon Mumbai testnet: 0xb5505a6d998549090530911180f38aC5130101c6
+            Polygon mainnet: 0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa
+        This allows the ChildChainManager to call `deposit(address user, bytes calldata depositData)`.
+
+    - Submit a Polygon mapping request at https://mapper.polygon.technology/
+        - Leave the child contract field blank in the form
+        - Choose the Mintable option in the form
+

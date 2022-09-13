@@ -6,7 +6,7 @@
 //
 // Officially hosted at: https://github.com/dublr/dublr
 
-pragma solidity 0.8.16;
+pragma solidity 0.8.17;
 
 import "./interfaces/IERC165.sol";
 import "./interfaces/IERC1820Registry.sol";
@@ -27,6 +27,7 @@ import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
 import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
+import "./interfaces/IPolygonBridgeable.sol";
 
 /**
  * @title OmniTokenInternal
@@ -37,7 +38,7 @@ abstract contract OmniTokenInternal is
                       IERC20, IERC20Optional, IERC20Burn,
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
                       IERC777, IERC1363, IERC4524, IEIP2612, ITransferWithPermit,
-                      IMultichain {
+                      IMultichain, IPolygonBridgeable {
 
     /**
      * @dev Constructor.
@@ -339,37 +340,28 @@ abstract contract OmniTokenInternal is
 
     // --------------
     
-    /**
-     * @dev true if Multichain routers may mint and burn tokens.
-     */
-    bool internal _multichainEnabled = false;
+    // Cross-chain router/bridge support:
 
-    /** @dev Whether an address is an authorized Multichain router. */
-    mapping(address => bool) internal isMultichainRouter;
+    /** @dev Whether an address is an authorized to burn tokens for a specified account. */
+    mapping(address => bool) internal isBurner;
+
+    /** @dev Whether an address is an authorized to mint tokens for a specified account. */
+    mapping(address => bool) internal isMinter;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
-     * @dev Authorize or deauthorize a Multichain router.
+     * @dev Authorize or deauthorize a token burner.
      */
-    function _owner_authorizeMultichainRouter(address routerAddr, bool authorize) public ownerOnly {
-        isMultichainRouter[routerAddr] = authorize;
+    function _owner_authorizeBurner(address addr, bool authorize) public ownerOnly {
+        isBurner[addr] = authorize;
     }
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
-     * @dev Enable or disable burning and minting of tokens by Multichain routers.
+     * @dev Authorize or deauthorize a token minter.
      */
-    function _owner_enableMultichainRouting(bool enable) public ownerOnly {
-        _multichainEnabled = enable;
-    }
-
-    /**
-     * @dev Functions with this modifier are only callable if Multichain routing is enabled,
-     * and `msg.sender` is an authorized Multichain router.
-     */
-    modifier multichainRouterOnly() {
-        require(_multichainEnabled && isMultichainRouter[msg.sender], "Not authorized");
-        _;
+    function _owner_authorizeMinter(address addr, bool authorize) public ownerOnly {
+        isMinter[addr] = authorize;
     }
 
     // --------------
