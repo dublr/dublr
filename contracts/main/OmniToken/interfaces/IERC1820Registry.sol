@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.16;
+pragma solidity 0.8.17;
 
 /** @dev Interface for ERC1820 registry. */
 interface IERC1820Registry {

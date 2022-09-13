@@ -6,7 +6,7 @@
  *  from ERC1363 token contracts.
  */
 
-pragma solidity 0.8.16;
+pragma solidity 0.8.17;
 
 import './IERC165.sol';
 
