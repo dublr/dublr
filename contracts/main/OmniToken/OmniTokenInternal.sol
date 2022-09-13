@@ -709,8 +709,12 @@ abstract contract OmniTokenInternal is
                 domainFields[0],
                 domainFields[1],
                 domainFields[2],
-                // Domain separator must be dynamically generated to prevent sidechain replay attacks:
+                // Domain separator must be dynamically generated to prevent sidechain replay attacks,
+                // in the case that a chain is forked:
                 // https://github.com/dublr/dublr/issues/10
+                // "while the chainid property not being part of the block, it can only ever change on
+                // a block basis (in case of forking a chain)":
+                // https://github.com/ethereum/solidity/issues/8854
                 block.chainid,
                 address(this)));
     }
