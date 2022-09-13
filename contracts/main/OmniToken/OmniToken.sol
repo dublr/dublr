@@ -1462,8 +1462,11 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev Burns tokens for a Multichain router -- see:
      * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     *
+     * @param addr The address to burn tokens for.
+     * @param amount The number of tokens to burn.
      */
-    function burn(address from, uint256 amount)
+    function burn(address addr, uint256 amount)
             external override(IMultichain) returns (bool success) {
         // Only registered burners can call this method
         require(isBurner[msg.sender], "Not authorized");
@@ -1478,7 +1481,7 @@ contract OmniToken is OmniTokenInternal {
      * of several required steps to complete the transfer of assets back to Ethereum:
      * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/getting-started/#withdrawals
      *
-     * @param amount amount of tokens to withdraw
+     * @param amount The number of tokens to withdraw (burn).
      */
     function withdraw(uint256 amount)
             external override(IPolygonBridgeable) {
@@ -1491,8 +1494,11 @@ contract OmniToken is OmniTokenInternal {
      * @dev Mints tokens for a Multichain router or the Polygon PoS bridge -- see:
      * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
      * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
+     *
+     * @param addr The address to mint tokens for.
+     * @param amount The number of tokens to mint.
      */
-    function mint(address to, uint256 amount)
+    function mint(address addr, uint256 amount)
             external override(OmniTokenInternal /* IMultichain,IPolygonBridgeable */)
             returns (bool success) {
         // Only registered minters can call this method
@@ -1506,10 +1512,10 @@ contract OmniToken is OmniTokenInternal {
      *
      * @dev Called on the Polygon contract when tokens are deposited on the Polygon chain.
      *
-     * @param user address to deposit tokens for
-     * @param depositData ABI-encoded amount
+     * @param addr The address to deposit tokens for.
+     * @param depositData The ABI-encoded number of tokens to deposit.
      */
-    function deposit(address user, bytes calldata depositData)
+    function deposit(address addr, bytes calldata depositData)
             external override(IPolygonBridgeable) {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
