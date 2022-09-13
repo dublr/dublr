@@ -113,27 +113,6 @@ abstract contract OmniTokenInternal is
     bytes32[] private domainFields;
 
     // -----------------------------------------------------------------------------------------------------------------
-
-    /**
-     * @notice EIP712 domain separator for EIP2612 permits.
-     *
-     * @dev [EIP2612] Part of the EIP2612 permit API.
-     *
-     * @return The domain separator for EIP2612 permits.
-     */
-    function DOMAIN_SEPARATOR() public view override(IEIP2612) returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                domainFields[0],
-                domainFields[1],
-                domainFields[2],
-                // Domain separator must be dynamically generated to prevent sidechain replay attacks:
-                // https://github.com/dublr/dublr/issues/10
-                block.chainid,
-                address(this)));
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
     // Function modifiers
 
     /**
@@ -716,6 +695,25 @@ abstract contract OmniTokenInternal is
     /** @dev The EIP2612 permit function typehash. */
     bytes32 internal constant EIP2612_PERMIT_TYPEHASH =
             keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    /**
+     * @notice EIP712 domain separator for EIP2612 permits.
+     *
+     * @dev [EIP2612] Part of the EIP2612 permit API.
+     *
+     * @return The domain separator for EIP2612 permits.
+     */
+    function DOMAIN_SEPARATOR() public view override(IEIP2612) returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                domainFields[0],
+                domainFields[1],
+                domainFields[2],
+                // Domain separator must be dynamically generated to prevent sidechain replay attacks:
+                // https://github.com/dublr/dublr/issues/10
+                block.chainid,
+                address(this)));
+    }
 
     /**
      * @dev Check permit certificate. Reverts if certificate is not valid.
