@@ -1510,7 +1510,8 @@ contract OmniToken is OmniTokenInternal {
     /**
      * @notice Only callable by the Polygon PoS bridge's ChildChainManager.
      *
-     * @dev Called on the Polygon contract when tokens are deposited on the Polygon chain.
+     * @dev Called on the Polygon contract when tokens are deposited on the Polygon chain -- see:
+     * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
      *
      * @param addr The address to deposit tokens for.
      * @param depositData The ABI-encoded number of tokens to deposit.
