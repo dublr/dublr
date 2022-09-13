@@ -25,7 +25,6 @@ import "./interfaces/IERC1363Receiver.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IERC4524Recipient.sol";
 import "./interfaces/IEIP2612.sol";
-import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
 import "./interfaces/IPolygonBridgeable.sol";
 
@@ -37,7 +36,7 @@ import "./interfaces/IPolygonBridgeable.sol";
 abstract contract OmniTokenInternal is 
                       IERC20, IERC20Optional, IERC20Burn,
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
-                      IERC777, IERC1363, IERC4524, IEIP2612, ITransferWithPermit,
+                      IERC777, IERC1363, IERC4524, IEIP2612,
                       IMultichain, IPolygonBridgeable {
 
     /**

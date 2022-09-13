@@ -19,7 +19,6 @@ import "./interfaces/IERC777.sol";
 import "./interfaces/IERC1363.sol";
 import "./interfaces/IERC4524.sol";
 import "./interfaces/IEIP2612.sol";
-import "./interfaces/ITransferWithPermit.sol";
 import "./interfaces/IMultichain.sol";
 import "./interfaces/IPolygonBridgeable.sol";
 
@@ -1406,46 +1405,6 @@ contract OmniToken is OmniTokenInternal {
                 defaultAllowanceExpirationTime(), "");
     }
 
-    /**
-     * @notice Allow permitted transfers in the style of EIP2612.
-     *
-     * @dev This is not part of the EIP2612 standard; however, it is implemented in AnySwap's ERC20
-     * token template V5 ( https://github.com/anyswap/chaindata/blob/main/AnyswapV5ERC20.sol ),
-     * and it provides useful functionality.
-     *
-     * @notice By calling this function, you confirm that this token is not considered an unregistered or
-     * illegal security, and that this smart contract is not considered an unregistered or illegal exchange,
-     * by the laws of any legal jurisdiction in which you hold or use tokens, or any legal jurisdiction
-     * of the holder or spender.
-     * 
-     * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is
-     * a taxable event. It is your responsibility to record the purchase price and sale price in ETH or
-     * your local currency for each use, transfer, or sale of tokens you own, and to pay the taxes due.
-     *
-     * @param holder The token holder that signed the certificate.
-     * @param recipient The recipient of the tokens.
-     * @param amount The number of tokens that `msg.sender` has been authorized to transfer on behalf of `holder`.
-     * @param deadline The block timestamp after which the certificate expires.
-     * @param v The ECDSA certificate `v` value.
-     * @param r The ECDSA certificate `r` value.
-     * @param s The ECDSA certificate `s` value.
-     */
-    function transferWithPermit(address holder, address recipient, uint256 amount, uint256 deadline,
-            uint8 v, bytes32 r, bytes32 s) external eip2612 override(ITransferWithPermit)
-            returns (bool success) {
-            
-        // Check whether permit is valid (reverts if not)
-        uint256 nonce;
-        unchecked { nonce = nonces[holder]++; }
-        checkPermit(deadline,
-                keccak256(abi.encode(TRANSFER_PERMIT_TYPEHASH, holder, recipient, amount, nonce, deadline)),
-                v, r, s, /* requiredSigner = */ holder);
-                
-        // Transfer requested amount
-        _transfer(/* operator = */ msg.sender, holder, recipient, amount, /* useAllowance = */ false, "", "");
-        return true;
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     // Cross-chain bridge/router support
     
@@ -1470,7 +1429,7 @@ contract OmniToken is OmniTokenInternal {
             external override(IMultichain) returns (bool success) {
         // Only registered burners can call this method
         require(isBurner[msg.sender], "Not authorized");
-        _burn(msg.sender, from, amount, "Multichain", "");
+        _burn(msg.sender, addr, amount, "Multichain", "");
         return true;
     }
 
@@ -1503,7 +1462,7 @@ contract OmniToken is OmniTokenInternal {
             returns (bool success) {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
-        _mint(msg.sender, to, amount, "Multichain/Polygon", "");
+        _mint(msg.sender, addr, amount, "Multichain/Polygon", "");
         return true;
     }
 
@@ -1521,7 +1480,7 @@ contract OmniToken is OmniTokenInternal {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
         uint256 amount = abi.decode(depositData, (uint256));
-        _mint(msg.sender, user, amount, "Polygon", "");
+        _mint(msg.sender, addr, amount, "Polygon", "");
     }
 }
 
