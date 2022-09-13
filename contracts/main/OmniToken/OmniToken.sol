@@ -1467,7 +1467,7 @@ contract OmniToken is OmniTokenInternal {
             external override(IMultichain) returns (bool success) {
         // Only registered burners can call this method
         require(isBurner[msg.sender], "Not authorized");
-        _burn(msg.sender, from, amount, "", "");
+        _burn(msg.sender, from, amount, "Multichain", "");
         return true;
     }
 
@@ -1475,14 +1475,14 @@ contract OmniToken is OmniTokenInternal {
      * @notice Called on the Polygon contract when user wants to withdraw tokens from Polygon back to Ethereum.
      *
      * @dev Burns the caller's tokens. Should only be called on the Polygon network, and this is only one step
-     * of all the required steps to complete the transfer of assets back to Ethereum:
+     * of several required steps to complete the transfer of assets back to Ethereum:
      * https://docs.polygon.technology/docs/develop/ethereum-polygon/pos/getting-started/#withdrawals
      *
      * @param amount amount of tokens to withdraw
      */
     function withdraw(uint256 amount)
             external override(IPolygonBridgeable) {
-        _burn(msg.sender, msg.sender, amount, "", "");
+        _burn(msg.sender, msg.sender, amount, "Polygon", "");
     }
     
     /**
@@ -1493,10 +1493,11 @@ contract OmniToken is OmniTokenInternal {
      * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
      */
     function mint(address to, uint256 amount)
-            external override(IMultichain) returns (bool success) {
+            external override(OmniTokenInternal /* IMultichain,IPolygonBridgeable */)
+            returns (bool success) {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
-        _mint(msg.sender, to, amount, "", "");
+        _mint(msg.sender, to, amount, "Multichain/Polygon", "");
         return true;
     }
 
@@ -1513,7 +1514,7 @@ contract OmniToken is OmniTokenInternal {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
         uint256 amount = abi.decode(depositData, (uint256));
-        _mint(msg.sender, user, amount, "", "");
+        _mint(msg.sender, user, amount, "Polygon", "");
     }
 }
 

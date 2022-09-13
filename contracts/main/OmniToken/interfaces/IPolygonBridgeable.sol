@@ -30,5 +30,14 @@ interface IPolygonBridgeable {
      * @param amount amount of tokens to withdraw
      */
     function withdraw(uint256 amount) external;
+
+    /**
+     * @notice Only callable by Multichain cross-chain routers or the Polygon PoS bridge's MintableERC20PredicateProxy.
+     *
+     * @dev Mints tokens for a Multichain router or the Polygon PoS bridge -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
+     */
+    function mint(address to, uint256 amount) external returns (bool success);
 }
 

@@ -364,6 +364,11 @@ abstract contract OmniTokenInternal is
         isMinter[addr] = authorize;
     }
 
+    function mint(address to, uint256 amount)
+            virtual external override(IMultichain,IPolygonBridgeable) returns (bool success) {
+        // Overridden in subclass
+    }
+
     // --------------
 
     /**
