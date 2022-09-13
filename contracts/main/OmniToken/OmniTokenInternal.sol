@@ -718,13 +718,6 @@ abstract contract OmniTokenInternal is
             keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
     /**
-     * @dev The EIP2612-like transfer function implemented by Anyswap's reference ERC20 token.
-     * @dev See: https://github.com/anyswap/chaindata/blob/main/AnyswapV6ERC20.sol#L473
-     */
-    bytes32 internal constant TRANSFER_PERMIT_TYPEHASH =
-            keccak256("Transfer(address owner,address to,uint256 value,uint256 nonce,uint256 deadline)");
-
-    /**
      * @dev Check permit certificate. Reverts if certificate is not valid.
      *
      * @param deadline The block timestamp after which the certificate is invalid.
