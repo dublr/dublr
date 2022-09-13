@@ -1444,6 +1444,7 @@ contract OmniToken is OmniTokenInternal {
      */
     function withdraw(uint256 amount)
             external override(IPolygonBridgeable) {
+        // No authorization needed (user burns their own tokens when withdrawing from Polygon)
         _burn(msg.sender, msg.sender, amount, "Polygon", "");
     }
     
