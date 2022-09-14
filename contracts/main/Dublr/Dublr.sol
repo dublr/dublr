@@ -30,7 +30,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      */
     constructor(uint256 initialMintPrice_ETHPerDUBLR_x1e9, uint256 initialMintAmountDUBLR)
             OmniToken("Dublr", "DUBLR", "1", new address[](0), initialMintAmountDUBLR) {
-        require(initialMintPrice_ETHPerDUBLR_x1e9 > 0, "Zero price");
+        require(initialMintPrice_ETHPerDUBLR_x1e9 > 0, "Bad arg");
         
         // Record initial timestamp
         // solhint-disable-next-line not-rely-on-time
@@ -47,6 +47,32 @@ contract Dublr is DublrInternal, IDublrDEX {
         
         // Register IDublrDEX interface via ERC165
         registerInterfaceViaERC165(type(IDublrDEX).interfaceId, true);
+    }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Static call values
+
+    /**
+     * @notice Get results of all statically-callable functions in a single call, to reduce the number of RPC calls.
+     *
+     * @return values The results of the statically-callable functions of the contract.
+     */
+    function getStaticCallValues() external view
+            override(IDublrDEX) returns (StaticCallValues memory values) {
+        return StaticCallValues({
+            buyingEnabled: buyingEnabled,
+            sellingEnabled: sellingEnabled,
+            mintingEnabled: mintingEnabled,
+            blockGasLimit: block.gaslimit,
+            gasPrice: tx.gasprice,
+            balanceETHWEI: msg.sender.balance,
+            balanceDUBLRWEI: balanceOf[msg.sender],
+            mintPriceETHPerDUBLR_x1e9: mintPrice(),
+            maxPriceETHPerDUBLR_x1e9: maxPriceETHPerDUBLR_x1e9,
+            minSellOrderValueETHWEI: minSellOrderValueETHWEI,
+            mySellOrder: mySellOrder(),
+            allSellOrders: allSellOrders()
+        });
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -177,36 +203,43 @@ contract Dublr is DublrInternal, IDublrDEX {
     /**
      * @notice The price of the cheapest sell order in the order book for any user.
      *
-     * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`), or 0 if the orderbook is empty.
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei),
-     *          or 0 if the orderbook is empty.
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
+     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *      Both values are 0 if the orderbook is empty.
      */
     function cheapestSellOrder() external view override(IDublrDEX)
-            returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
+            returns (PriceAndAmount memory priceAndAmountOfSellOrder) {
         if (orderBook.length == 0) {
             // Orderbook is empty
-            return (0, 0);
+            return PriceAndAmount({
+                priceETHPerDUBLR_x1e9: 0,
+                amountDUBLRWEI: 0
+            });
         } else {
             Order storage order = orderBook[0];
-            return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            return PriceAndAmount({
+                priceETHPerDUBLR_x1e9: order.priceETHPerDUBLR_x1e9,
+                amountDUBLRWEI: order.amountDUBLRWEI
+            });
         }
     }
 
     /**
      * @notice The current sell order in the order book for the caller, or (0, 0) if none.
      *
-     * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the caller's current sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`), or 0 if the caller has no current sell order.
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei),
-     *          or 0 if the caller has no current sell order.
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the caller's sell order, in ETH per DUBLR
+     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *      Both values are 0 if the caller has no sell order.
      */
-    function mySellOrder() external view override(IDublrDEX)
-            returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) {
+    function mySellOrder() public view override(IDublrDEX)
+            returns (PriceAndAmount memory priceAndAmountOfSellOrder) {
         uint256 heapIdxPlusOne = sellerToHeapIdxPlusOne[msg.sender];
         if (heapIdxPlusOne == 0) {
             // Caller has no sell order
-            return (0, 0);
+            return PriceAndAmount({
+                priceETHPerDUBLR_x1e9: 0,
+                amountDUBLRWEI: 0
+            });
         } else {
             uint256 heapIdx;
             unchecked { heapIdx = heapIdxPlusOne - 1; }  // Save gas
@@ -215,7 +248,10 @@ contract Dublr is DublrInternal, IDublrDEX {
             Order storage order = orderBook[heapIdx];
             assert(order.seller == msg.sender);  // Sanity check
             
-            return (order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            return PriceAndAmount({
+                priceETHPerDUBLR_x1e9: order.priceETHPerDUBLR_x1e9,
+                amountDUBLRWEI: order.amountDUBLRWEI
+            });
         }
     }
 
@@ -223,25 +259,26 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @notice Cancel the caller's current sell order in the orderbook.
      *
      * @dev Restores the remaining (unfulfilled) amount of the caller's sell order back to the seller's
-     * token balance. If the caller has no current sell order, reverts.
+     * token balance. If the caller has no current sell order, does nothing.
      */
     function cancelMySellOrder() public override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
             stateUpdater {
         // Determine the heap index of the sender's current sell order, if any
         uint256 heapIdxPlusOne = sellerToHeapIdxPlusOne[msg.sender];
-        require(heapIdxPlusOne > 0, "No sell order");
-        uint256 heapIdx;
-        unchecked { heapIdx = heapIdxPlusOne - 1; }  // Save gas
+        if (heapIdxPlusOne > 0) {
+            uint256 heapIdx;
+            unchecked { heapIdx = heapIdxPlusOne - 1; }  // Save gas
 
-        // Remove the order from the heap
-        Order memory order = heapRemove(heapIdx);
-        assert(order.seller == msg.sender);  // Sanity check
+            // Remove the order from the heap
+            Order memory order = heapRemove(heapIdx);
+            assert(order.seller == msg.sender);  // Sanity check
 
-        // Add the order amount of the canceled sell order back into the seller's balance
-        balanceOf[order.seller] += order.amountDUBLRWEI;
+            // Add the order amount of the canceled sell order back into the seller's balance
+            balanceOf[order.seller] += order.amountDUBLRWEI;
 
-        emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+        }
     }
 
     /**
@@ -253,7 +290,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * Each list item is a tuple consisting of the price of each token in ETH per DUBLR (multiplied by `10^9`),
      * and the number of tokens for sale.
      */
-    function allSellOrders() external view override(IDublrDEX)
+    function allSellOrders() public view override(IDublrDEX)
             // Returning an array requires ABI encoder v2, which is the default in Solidity >=0.8.0.
             returns (PriceAndAmount[] memory priceAndAmountOfSellOrders) {
         priceAndAmountOfSellOrders = new PriceAndAmount[](orderBook.length);
@@ -345,11 +382,10 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Modified with stateUpdater for reentrancy protection
             stateUpdater {
         require(sellingEnabled, "Selling disabled");
-        require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0, "Bad arg");
-
-        // Make sure prices aren't exorbitant, to prevent DoS attacks where a seller triggers integer overflow
-        // for other users.
-        require(priceETHPerDUBLR_x1e9 <= maxPriceETHPerDUBLR_x1e9, "Price too high");
+        require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0
+                // Make sure prices aren't exorbitant, to prevent DoS attacks where a seller triggers integer overflow
+                // for other users.
+                && priceETHPerDUBLR_x1e9 <= maxPriceETHPerDUBLR_x1e9, "Bad arg");
                 
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders
         // from different addresses, by making it costly to do this. We require that the total amount of the

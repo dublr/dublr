@@ -342,10 +342,18 @@ abstract contract OmniTokenInternal is
         isMinter[addr] = authorize;
     }
 
-    function mint(address to, uint256 amount)
-            virtual external override(IMultichain,IPolygonBridgeable) returns (bool success) {
-        // Overridden in subclass
-    }
+    /**
+     * @notice Only callable by Multichain cross-chain routers or the Polygon PoS bridge's MintableERC20PredicateProxy.
+     *
+     * @dev Mints tokens for a Multichain router or the Polygon PoS bridge -- see:
+     * https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards
+     * https://docs.polygon.technology/docs/develop/ethereum-polygon/mintable-assets
+     *
+     * @param addr The address to mint tokens for.
+     * @param amount The number of tokens to mint.
+     */
+    function mint(address addr, uint256 amount)
+            virtual external override(IMultichain,IPolygonBridgeable) returns (bool success);
 
     // --------------
 

@@ -261,8 +261,9 @@ contract OmniToken is OmniTokenInternal {
         // and then later unlimited allowance was disabled, and the spender's allowance is still unlimited,
         // then the transfer should fail (the user's allowance needs to be set to a limited allowance
         // before transfers will succeed again).
-        require(_unlimitedAllowancesEnabled || allowedAmount != UNLIMITED_ALLOWANCE,
-                "Unlimited allowance disabled");
+        if (!_unlimitedAllowancesEnabled && allowedAmount == UNLIMITED_ALLOWANCE) {
+            allowedAmount = 0;
+        }
         
         // Fail transaction if allowance is insufficient
         require(amount <= allowedAmount, "Insufficient allowance");
@@ -340,11 +341,9 @@ contract OmniToken is OmniTokenInternal {
 
         // PRECONDITIONS [CHECKS]:
 
-        require(operator != address(0) && holder != address(0)
-                && recipient != address(0)
+        require(operator != address(0) && holder != address(0) && recipient != address(0)
                 // Don't allow sending tokens to this contract address, to catch accidental copy/paste errors.
-                && recipient != address(this),
-                "Bad arg");
+                && recipient != address(this), "Bad arg");
         // Zero amount is valid for ERC20 transfers, for some reason (even though it's wasteful).
 
         // PERFORM TRANSFER [EFFECTS]:
@@ -391,7 +390,7 @@ contract OmniToken is OmniTokenInternal {
         // PRECONDITIONS [CHECKS]:
         
         require(holder != address(0) && spender != address(0), "Bad arg");
-        require(_unlimitedAllowancesEnabled || allowedAmount != UNLIMITED_ALLOWANCE, "Unlimited allowance disabled");
+        require(_unlimitedAllowancesEnabled || allowedAmount != UNLIMITED_ALLOWANCE, "Bad allowance");
         // ERC777 doesn't use the approval API (sanity check)
         assert(_erc777CallDepth == 0);
         // solhint-disable-next-line not-rely-on-time
@@ -636,7 +635,7 @@ contract OmniToken is OmniTokenInternal {
         // This is non-standard, but provides important protection to users against the most common mistake
         // in sending ERC20 tokens, which has caused millions of dollars in loss.
         // Instead, the user should use `approve` and `transferFrom`, or ERC777/ERC1363/ERC4524.
-        require(_transferToContractsEnabled || !isContract(recipient), "Can't transfer to a contract");
+        require(_transferToContractsEnabled || !isContract(recipient), "Can't transfer to contract");
         // Perform the transfer
         _transfer(/* operator = */ msg.sender, /* sender = */ msg.sender, recipient, amount,
                 /* useAllowance = */ false, "", "");
@@ -667,7 +666,7 @@ contract OmniToken is OmniTokenInternal {
     function transferFrom(address holder, address recipient, uint256 amount) external erc20 override(IERC20)
             returns (bool success) {
         // Don't allow transfer to contracts, as with `transfer` function
-        require(_transferToContractsEnabled || !isContract(recipient), "Can't transfer to a contract");
+        require(_transferToContractsEnabled || !isContract(recipient), "Can't transfer to contract");
         // Perform the transfer
         _transfer(/* operator = */ msg.sender, holder, recipient, amount, /* useAllowance = */ true, "", "");
         return true;
@@ -841,7 +840,7 @@ contract OmniToken is OmniTokenInternal {
             // Have to set allowance to zero (or let it expire) before it can be set to non-zero
             require(allowance(/* holder = */ msg.sender, spender) == 0, "Curr allowance nonzero");
         }
-        require(expirationSec >= MIN_EXPIRATION_SEC, "expirationSec<MIN_EXPIRATION_SEC");
+        require(expirationSec >= MIN_EXPIRATION_SEC, "expirationSec too small");
         _approve(/* holder = */ msg.sender, spender, amount,
                 expirationSec == UNLIMITED_EXPIRATION ? expirationSec
                         // solhint-disable-next-line not-rely-on-time
@@ -898,7 +897,7 @@ contract OmniToken is OmniTokenInternal {
      * @param operator The operator to authorize.
      */
     function authorizeOperator(address operator) external erc777 override(IERC777) {
-        require(operator != msg.sender, "Can't auth self");
+        require(operator != msg.sender, "Bad arg");
         if (isDefaultOperator[operator]) {
             isRevokedDefaultOperatorFor[operator][msg.sender] = false;
         } else {
@@ -915,7 +914,7 @@ contract OmniToken is OmniTokenInternal {
      * @param operator The operator to revoke.
      */
     function revokeOperator(address operator) external erc777 override(IERC777) {
-        require(operator != msg.sender, "Can't revoke self");
+        require(operator != msg.sender, "Bad arg");
         if (isDefaultOperator[operator]) {
             isRevokedDefaultOperatorFor[operator][msg.sender] = true;
         } else {
@@ -1429,7 +1428,7 @@ contract OmniToken is OmniTokenInternal {
             external override(IMultichain) returns (bool success) {
         // Only registered burners can call this method
         require(isBurner[msg.sender], "Not authorized");
-        _burn(msg.sender, addr, amount, "Multichain", "");
+        _burn(msg.sender, addr, amount, "", "");
         return true;
     }
 
@@ -1445,7 +1444,7 @@ contract OmniToken is OmniTokenInternal {
     function withdraw(uint256 amount)
             external override(IPolygonBridgeable) {
         // No authorization needed (user burns their own tokens when withdrawing from Polygon)
-        _burn(msg.sender, msg.sender, amount, "Polygon", "");
+        _burn(msg.sender, msg.sender, amount, "", "");
     }
     
     /**
@@ -1463,7 +1462,7 @@ contract OmniToken is OmniTokenInternal {
             returns (bool success) {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
-        _mint(msg.sender, addr, amount, "Multichain/Polygon", "");
+        _mint(msg.sender, addr, amount, "", "");
         return true;
     }
 
@@ -1481,7 +1480,7 @@ contract OmniToken is OmniTokenInternal {
         // Only registered minters can call this method
         require(isMinter[msg.sender], "Not authorized");
         uint256 amount = abi.decode(depositData, (uint256));
-        _mint(msg.sender, addr, amount, "Polygon", "");
+        _mint(msg.sender, addr, amount, "", "");
     }
 }
 

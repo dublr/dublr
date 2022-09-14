@@ -86,6 +86,35 @@ interface IDublrDEX {
     event Unpayable(address indexed seller, uint256 amountETHWEI, bytes data);
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Static call values
+    
+    /**
+     * @dev Results of all statically-callable functions in a single call, used to reduce the number of RPC calls
+     * in the style of MultiCall.
+     */
+    struct StaticCallValues {
+        bool buyingEnabled;
+        bool sellingEnabled;
+        bool mintingEnabled;
+        uint256 blockGasLimit;
+        uint256 gasPrice;
+        uint256 balanceETHWEI;
+        uint256 balanceDUBLRWEI;
+        uint256 mintPriceETHPerDUBLR_x1e9;
+        uint256 maxPriceETHPerDUBLR_x1e9;
+        uint256 minSellOrderValueETHWEI;
+        PriceAndAmount mySellOrder;
+        PriceAndAmount[] allSellOrders;
+    }
+
+    /**
+     * @notice Get results of all statically-callable functions in a single call, to reduce the number of RPC calls.
+     *
+     * @return values The results of the statically-callable functions of the contract.
+     */
+    function getStaticCallValues() external returns (StaticCallValues memory values);
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Mint price
             
     /**
@@ -115,42 +144,6 @@ interface IDublrDEX {
 
     // -----------------------------------------------------------------------------------------------------------------
     // Public functions for interacting with order book
-
-    /**
-     * @notice The number of sell orders in the order book.
-     *
-     * @return numEntries The number of entries in the order book.
-     */
-    function orderBookSize() external view returns (uint256 numEntries);
-
-    /**
-     * @notice The price of the cheapest sell order in the order book for any user.
-     *
-     * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`), or 0 if the orderbook is empty.
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei),
-     *          or 0 if the orderbook is empty.
-     */
-    function cheapestSellOrder() external view returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
-
-    /**
-     * @notice The current sell order in the order book for the caller, or (0, 0) if none.
-     *
-     * @return priceETHPerDUBLR_x1e9 The price of DUBLR tokens in the caller's current sell order, in ETH per DUBLR
-     *          (multiplied by `10^9`), or 0 if the caller has no current sell order.
-     * @return amountDUBLRWEI the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = `10^18` DUBLR wei),
-     *          or 0 if the caller has no current sell order.
-     */
-    function mySellOrder() external view returns (uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI);
-
-    /**
-     * @notice Cancel the caller's current sell order in the orderbook.
-     *
-     * @dev Restores the amount of the caller's sell order back to the seller's token balance.
-     *
-     * If the caller has no current sell order, reverts.
-     */
-    function cancelMySellOrder() external;
     
     /**
      * @dev The price and amount of a sell order in the orderbook.
@@ -164,6 +157,40 @@ interface IDublrDEX {
         uint256 priceETHPerDUBLR_x1e9;
         uint256 amountDUBLRWEI;
     }
+
+    /**
+     * @notice The number of sell orders in the order book.
+     *
+     * @return numEntries The number of entries in the order book.
+     */
+    function orderBookSize() external view returns (uint256 numEntries);
+
+    /**
+     * @notice The price of the cheapest sell order in the order book for any user.
+     *
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
+     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *      Both values are 0 if the orderbook is empty.
+     */
+    function cheapestSellOrder() external view returns (PriceAndAmount memory priceAndAmountOfSellOrder);
+
+    /**
+     * @notice The current sell order in the order book for the caller, or (0, 0) if none.
+     *
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the caller's sell order, in ETH per DUBLR
+     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     *      Both values are 0 if the caller has no sell order.
+     */
+    function mySellOrder() external view returns (PriceAndAmount memory priceAndAmountOfSellOrder);
+
+    /**
+     * @notice Cancel the caller's current sell order in the orderbook.
+     *
+     * @dev Restores the amount of the caller's sell order back to the seller's token balance.
+     *
+     * If the caller has no current sell order, reverts.
+     */
+    function cancelMySellOrder() external;
 
     /**
      * @notice Get all sell orders in the orderbook.

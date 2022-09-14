@@ -64,7 +64,7 @@ describe("OmniToken", () => {
   it("ERC20: enableTransferToContracts", async () => {
     await contract0._owner_enableTransferToContracts(false);
     await expect(contract0["transfer(address,uint256)"](contractERC1820Registry.address, 7))
-            .to.be.revertedWith("Can't transfer to a contract");
+            .to.be.revertedWith("Can't transfer to contract");
     await contract0._owner_enableTransferToContracts(true);
     await contract0["transfer(address,uint256)"](contractERC1820Registry.address, 7);
   });
@@ -147,7 +147,7 @@ describe("OmniToken", () => {
     const unlimited = ethers.constants.MaxUint256;
     await contract0._owner_enableUnlimitedAllowances(false);
     await expect(contract0["approve(address,uint256)"](wallet[1].address, unlimited))
-            .to.be.revertedWith("Unlimited allowance disabled");
+            .to.be.revertedWith("Bad allowance");
     await expect(contract1._owner_enableUnlimitedAllowances(true)).to.be.revertedWith("Not owner");
     await contract0._owner_enableUnlimitedAllowances(true);
     await contract0["approve(address,uint256)"](wallet[1].address, unlimited);
