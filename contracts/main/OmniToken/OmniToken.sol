@@ -53,8 +53,9 @@ contract OmniToken is OmniTokenInternal {
      * (as long as block timestamps increase monotonically), so do not use an allowance expiration time of less
      * than 15 seconds for PoW networks. For proof of stake, the block interval is set to exactly 12 seconds,
      * so the min expiration time should probably be set to 13 seconds or more for PoS networks.
+     * The default is set to 16 seconds for maximum compatibility.
      */
-    uint256 internal constant MIN_EXPIRATION_SEC = 13;
+    uint256 internal constant MIN_EXPIRATION_SEC = 16;
 
     /**
      * @notice The default number of seconds that an allowance is valid for, after the allowance or permit
@@ -1405,7 +1406,7 @@ contract OmniToken is OmniTokenInternal {
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Cross-chain bridge/router support
+    // Cross-chain bridge/router support (for Multichain router and Polygon PoS bridge)
     
     /**
      * @notice Used by Multichain cross-chain routers to detect the supported router mode.
@@ -1425,9 +1426,9 @@ contract OmniToken is OmniTokenInternal {
      * @param amount The number of tokens to burn.
      */
     function burn(address addr, uint256 amount)
+            // Only authorized burners can call this method
+            burnerOnly
             external override(IMultichain) returns (bool success) {
-        // Only registered burners can call this method
-        require(isBurner[msg.sender], "Not authorized");
         _burn(msg.sender, addr, amount, "", "");
         return true;
     }
@@ -1442,8 +1443,9 @@ contract OmniToken is OmniTokenInternal {
      * @param amount The number of tokens to withdraw (burn).
      */
     function withdraw(uint256 amount)
+            // No burnerOnly authorization needed
+            // (user burns their own tokens when withdrawing from Polygon)
             external override(IPolygonBridgeable) {
-        // No authorization needed (user burns their own tokens when withdrawing from Polygon)
         _burn(msg.sender, msg.sender, amount, "", "");
     }
     
@@ -1458,10 +1460,10 @@ contract OmniToken is OmniTokenInternal {
      * @param amount The number of tokens to mint.
      */
     function mint(address addr, uint256 amount)
+            // Only authorized minters can call this method
+            minterOnly
             external override(OmniTokenInternal /* IMultichain,IPolygonBridgeable */)
             returns (bool success) {
-        // Only registered minters can call this method
-        require(isMinter[msg.sender], "Not authorized");
         _mint(msg.sender, addr, amount, "", "");
         return true;
     }
@@ -1476,9 +1478,9 @@ contract OmniToken is OmniTokenInternal {
      * @param depositData The ABI-encoded number of tokens to deposit.
      */
     function deposit(address addr, bytes calldata depositData)
+            // Only authorized minters can call this method
+            minterOnly
             external override(IPolygonBridgeable) {
-        // Only registered minters can call this method
-        require(isMinter[msg.sender], "Not authorized");
         uint256 amount = abi.decode(depositData, (uint256));
         _mint(msg.sender, addr, amount, "", "");
     }

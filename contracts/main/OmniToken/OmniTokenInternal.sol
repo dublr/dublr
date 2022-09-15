@@ -342,6 +342,18 @@ abstract contract OmniTokenInternal is
         isMinter[addr] = authorize;
     }
 
+    /** @dev Only authorized burners can call functions with this modifier. */
+    modifier burnerOnly() {
+        require(isMinter[msg.sender], "Not authorized");
+        _;
+    }
+
+    /** @dev Only authorized minters can call functions with this modifier. */
+    modifier minterOnly() {
+        require(isMinter[msg.sender], "Not authorized");
+        _;
+    }
+
     /**
      * @notice Only callable by Multichain cross-chain routers or the Polygon PoS bridge's MintableERC20PredicateProxy.
      *
