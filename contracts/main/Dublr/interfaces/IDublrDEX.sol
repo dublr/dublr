@@ -97,7 +97,6 @@ interface IDublrDEX {
         bool sellingEnabled;
         bool mintingEnabled;
         uint256 blockGasLimit;
-        uint256 gasPrice;
         uint256 balanceETHWEI;
         uint256 balanceDUBLRWEI;
         uint256 mintPriceETHPerDUBLR_x1e9;

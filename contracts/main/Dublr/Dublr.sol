@@ -64,7 +64,6 @@ contract Dublr is DublrInternal, IDublrDEX {
             sellingEnabled: sellingEnabled,
             mintingEnabled: mintingEnabled,
             blockGasLimit: block.gaslimit,
-            gasPrice: tx.gasprice,
             balanceETHWEI: msg.sender.balance,
             balanceDUBLRWEI: balanceOf[msg.sender],
             mintPriceETHPerDUBLR_x1e9: mintPrice(),
