@@ -344,7 +344,7 @@ abstract contract OmniTokenInternal is
 
     /** @dev Only authorized burners can call functions with this modifier. */
     modifier burnerOnly() {
-        require(isMinter[msg.sender], "Not authorized");
+        require(isBurner[msg.sender], "Not authorized");
         _;
     }
 
