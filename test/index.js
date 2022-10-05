@@ -5,8 +5,6 @@ const { BigNumber } = require("@ethersproject/bignumber");
 
 const { ensureERC1820RegistryDeployed } = require("./ERC1820.js");
 
-const ERC777Recipient = require("../artifacts/contracts/test/ERC777Recipient.sol/ERC777Recipient.json");
-const ERC777Sender = require("../artifacts/contracts/test/ERC777Sender.sol/ERC777Sender.json");
 const ERC1363Spender = require("../artifacts/contracts/test/ERC1363Spender.sol/ERC1363Spender.json");
 const ERC1363Receiver = require("../artifacts/contracts/test/ERC1363Receiver.sol/ERC1363Receiver.json");
 const ERC4524Recipient = require("../artifacts/contracts/test/ERC4524Recipient.sol/ERC4524Recipient.json");
@@ -42,7 +40,6 @@ describe("OmniToken", () => {
     expect(await contract0.symbol()).to.equal("DUBLR");
     expect(await contract0.version()).to.equal("1");
     expect(await contract0.decimals()).to.equal(18);
-    expect(await contract0.granularity()).to.equal(1);
     const ierc20InterfaceId = 0x36372b07;
     expect(await contract0.supportsInterface(ierc20InterfaceId)).to.equal(true);
   });
@@ -228,100 +225,6 @@ describe("OmniToken", () => {
     await contract0["burn(uint256)"](90);
     expect(await contract0.balanceOf(wallet[0].address)).to.equal(910);
     await expect(contract0["burn(uint256)"](1000)).to.be.revertedWith("Insufficient balance");
-  });
-  
-  // Test ERC-777 interface
-  
-  it("ERC777: send function should revert for non-ERC777 contract recipient", async () => {
-    const contractERC1363Receiver = await deployContract(wallet[1], ERC1363Receiver, []);
-    await expect(contract0["send(address,uint256,bytes)"](contractERC1363Receiver.address, 200, []))
-            .to.be.revertedWith("Not ERC777 recipient");
-  });
-  
-  it("ERC777: send function should succeed for EOA recipient", async () => {
-    await contract0["send(address,uint256,bytes)"](wallet[1].address, 200, []);
-    expect(await contract0.balanceOf(wallet[1].address)).to.equal(200);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(800);
-  });
-  
-  it("ERC777: send function should call ERC777 recipient, with non-ERC777 sender", async () => {
-    const contractERC777Recipient = await deployContract(wallet[1], ERC777Recipient, []);
-    expect(await contractERC777Recipient.callCount()).to.equal(0);
-    await contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
-    expect(await contractERC777Recipient.callCount()).to.equal(1);
-    expect(await contract0.balanceOf(contractERC777Recipient.address)).to.equal(200);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(800);
-  });
-  
-  it("ERC777: send function should call ERC777 sender interface if present", async () => {
-    const contract9 = await contract0.connect(wallet[9]);
-    await contract0["transfer(address,uint256)"](wallet[9].address, 1000);
-    const contractERC777Recipient = await deployContract(wallet[1], ERC777Recipient, []);
-    const contractERC777Sender = await deployContract(wallet[8], ERC777Sender, [wallet[9].address]);
-    await contractERC1820Registry["setInterfaceImplementer(address,bytes32,address)"](
-            wallet[9].address,
-            ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ERC777TokensSender")),
-            contractERC777Sender.address);
-    expect(await contractERC777Sender.callCount()).to.equal(0);
-    await contract9["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
-    expect(await contractERC777Sender.callCount()).to.equal(1);
-    expect(await contract0.balanceOf(contractERC777Recipient.address)).to.equal(200);
-    expect(await contract0.balanceOf(wallet[9].address)).to.equal(800);
-    expect(await contract0.balanceOf(contractERC777Sender.address)).to.equal(0);
-  });
-  
-  it("ERC777: test reentrancy protection", async () => {
-    const contractERC777Recipient = await deployContract(wallet[1], ERC777Recipient, []);
-    // Test that sending succeeds, then entable a reentrant call, then try the same send
-    await contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
-    await contractERC777Recipient.testReentry(true);
-    try {
-      await contract0["send(address,uint256,bytes)"](contractERC777Recipient.address, 200, []);
-      expect(true).to.equal(false);  // Fail if call succeeds
-    } catch (error) {
-      expect(error.message).to.contain("Reentrance");
-    }
-  });
-
-  it("ERC777: burn", async () => {
-    await contract0["burn(uint256,bytes)"](90, []);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(910);
-    await expect(contract0["burn(uint256,bytes)"](1000, [])).to.be.revertedWith("Insufficient balance");
-  });
-
-  it("ERC777: authorizeOperator / revokeOperator", async () => {
-    expect(await contract0.isOperatorFor(wallet[1].address, wallet[0].address)).to.equal(false);
-    await contract0.authorizeOperator(wallet[1].address);
-    expect(await contract0.isOperatorFor(wallet[1].address, wallet[0].address)).to.equal(true);
-    await contract0.revokeOperator(wallet[1].address);
-    expect(await contract0.isOperatorFor(wallet[1].address, wallet[0].address)).to.equal(false);
-  });
-
-  it("ERC777: operatorSend", async () => {
-    const contract1 = await contract0.connect(wallet[1]);
-    await expect(contract1.operatorSend(wallet[0].address, wallet[2].address, 200, [], []))
-            .to.be.revertedWith("Not operator");
-    await contract0.authorizeOperator(wallet[1].address);
-    await contract1.operatorSend(wallet[0].address, wallet[2].address, 200, [], []);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(800);
-    expect(await contract0.balanceOf(wallet[1].address)).to.equal(0);
-    expect(await contract0.balanceOf(wallet[2].address)).to.equal(200);
-    await contract0.revokeOperator(wallet[1].address);
-    await expect(contract1.operatorSend(wallet[0].address, wallet[2].address, 200, [], []))
-            .to.be.revertedWith("Not operator");
-  });
-
-  it("ERC777: operatorBurn", async () => {
-    const contract1 = await contract0.connect(wallet[1]);
-    await expect(contract1.operatorBurn(wallet[0].address, 200, [], []))
-            .to.be.revertedWith("Not operator");
-    await contract0.authorizeOperator(wallet[1].address);
-    await contract1.operatorBurn(wallet[0].address, 200, [], []);
-    expect(await contract0.balanceOf(wallet[0].address)).to.equal(800);
-    expect(await contract0.balanceOf(wallet[1].address)).to.equal(0);
-    await contract0.revokeOperator(wallet[1].address);
-    await expect(contract1.operatorBurn(wallet[0].address, 200, [], []))
-            .to.be.revertedWith("Not operator");
   });
   
   // Test ERC1363 interface

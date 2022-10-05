@@ -11,28 +11,28 @@ OmniToken is the foundation upon which the [Dublr token](https://github.com/dubl
 OmniToken implements all major Ethereum fungible token standards in a single token smart contract. All of these APIs work seamlessly together, and share an ultra secure hardened token implementation at the core:
 
 * The [ERC20 token standard](https://eips.ethereum.org/EIPS/eip-20).
-* The [ERC777 token standard](https://eips.ethereum.org/EIPS/eip-777). This replaces ERC20's `approve`/`transferFrom` mechanism with a system of authorized operators that have authority to transfer tokens on behalf of another contract. ERC777 also requires the recipient of tokens to implement a receiver interface so that the recipient must declare its ability to receive tokens for a `send` operation to succeed. The sender of tokens can also optionally implement a sender interface. The receiver (and optionally also the sender) must declare that they support ERC777 by registering their API using ERC1820.
-* The [ERC1363 standard](https://eips.ethereum.org/EIPS/eip-1363) for safe transfer of tokens to ERC165-registered recipients. This API enables not just recipients but also spenders/operators to be notified after they have been approved to spend funds (in contrast with ERC777, which is able to notify senders/token holders, but not spenders/operators). ERC1363 has already seen some adoption, e.g. in the [FriendsFingers DAO](https://www.friendsfingers.com/dao/), and it is being added to OpenZeppelin.
-* The [ERC4524 draft standard](https://eips.ethereum.org/EIPS/eip-4524) for safe transfer of tokens to ERC165-registered recipients. This is implemented despite being a draft, because of its simplicity. It is similar to ERC777, but simpler: ERC4524 relies on the standard allowance system rather than ERC777's complex operator approval system; ERC4524 requires recipients to register their supported APIs via ERC165 rather than the ERC1820 system that ERC777 uses; and ERC4524 only supports receiver notification, not sender notification.
+* Several extensions to ERC20 to increase its security (described below).
+* The [ERC1363 standard](https://eips.ethereum.org/EIPS/eip-1363) for safe transfer of tokens to ERC165-registered recipients. This API enables not just recipients but also spenders/operators to be notified after they have been approved to spend funds. ERC1363 has already seen some adoption, e.g. in the [FriendsFingers DAO](https://www.friendsfingers.com/dao/), and it is being added to OpenZeppelin.
+* The [ERC4524 draft standard](https://eips.ethereum.org/EIPS/eip-4524) for safe transfer of tokens to ERC165-registered recipients. This is implemented despite being a draft, because of its simplicity. ERC4524 relies on the standard ERC20 allowance system. ERC4524 requires recipients to register their supported APIs via ERC165, and only supports receiver notification, not sender or spender notification.
 * The [EIP2612 permit](https://eips.ethereum.org/EIPS/eip-2612) mechanism for ERC712/ERC1271-signed token permitting/approval via secp256k1 signatures (using the `permit` method), and additionally an Anyswap extension method [`transferWithPermit`](https://github.com/anyswap/chaindata/blob/main/AnyswapV6ERC20.sol#L437) based on the same permitting mechanism.
 
 In addition, OmniToken implements the [Multichain](https://multichain.org/) [cross-chain](https://docs.multichain.org/developer-guide/how-to-develop-under-anyswap-erc20-standards) [bridge](https://github.com/anyswap/CrossChain-Router/wiki/How-to-write-anytoken-wrapper-contract-to-support-Multichain-Bridge-Router) for bridging assets between chains, and also the [Polygon proof of stake bridge](https://wiki.polygon.technology/docs/develop/ethereum-polygon/pos/getting-started/). (These are both disabled by default, and the bridge configuration must be set up via a request to the Multichain and/or Polygon team.) Note that if you bridge OmniToken tokens to another chain, you are relying on the security of the router and the bridged asset: your tokens are no longer implemented by the OmniToken smart contract when using a bridged or wrapped token, and the security of your tokens can no longer be protected or enforced by OmniToken's strong security model.
 
 ## Comparison between the token APIs supported by OmniToken
 
-| Feature                              | ERC20     | ERC777                | ERC1363   | ERC4524             | EIP2612          |
-| ---                                  | :---:     | :---:                 | :---:     | :---:               | :---:            |
-| Operator/spender permission via      | Allowance | Grant/revoke operator | Allowance | Allowance           | Permit allowance |
-| Sender/holder notification hook      | No        | Optional              | No        | No                  | No               |
-| Spender/operator notification hook   | No        | No                    | Required  | No                  | No               |
-| Receiver/recipient notification hook **\***| No  | Required if non-EOA   | Required  | Required if non-EOA | No               |
-| Hook registration API                | N/A       | ERC1820               | ERC165    | ERC165              | N/A              |
+| Feature                                     | ERC20     | ERC1363   | ERC4524             | EIP2612          |
+| ---                                         | :---:     | :---:     | :---:               | :---:            |
+| Operator/spender permission via             | Allowance | Allowance | Allowance           | Permit allowance |
+| Sender/holder notification hook             | No        | No        | No                  | No               |
+| Spender/operator notification hook          | No        | Required  | No                  | No               |
+| Receiver/recipient notification hook **\*** | No        | Required  | Required if non-EOA | No               |
+| Hook registration API                       | N/A       | ERC165    | ERC165              | N/A              |
 
-**\* Receiver/recipient notification hook:** ERC20 and the EIP2612 permitting system allow for tokens to be sent to any contract, but OmniToken disallows this, breaking with the ERC20 standard in order to increase safety (see below). ERC777 and ERC4524 reject sending to contracts that do not implement the required receiver interface, but they do not reject sending to an EOA (Externally Owned Account / a standard non-contract wallet address). ERC1363 rejects sending to and spending by EOAs, but also to/by contracts that do not implement the receiver/spender interface.
+**\* Receiver/recipient notification hook:** ERC20 and the EIP2612 permitting system allow for tokens to be sent to any contract, but OmniToken disallows this, breaking with the ERC20 standard in order to increase safety (see below). ERC4524 rejects sending to contracts that do not implement the required receiver interface, but it does not reject sending to an EOA (Externally Owned Account / a standard non-contract wallet address). ERC1363 rejects sending to and spending by EOAs, but also to/by contracts that do not implement the receiver/spender interface.
 
 ## ERC20 extensions, and deviations from standards to increase security
 
-### Extension APIs for mitigating ERC20 vulnerabilities
+### ERC20 extension APIs for mitigating ERC20 vulnerabilities
 
 Several extensions are added on top of ERC20 by OmniToken, for addressing vulnerabilities in ERC20:
 
@@ -46,40 +46,36 @@ Several extensions are added on top of ERC20 by OmniToken, for addressing vulner
 OmniToken is configured to be 100% ERC20-compatible by default, but many aspects of the ERC20 token standard are insecure, which has resulted in enormous numbers of tokens being stolen from wallets. Therefore, OmniToken may be configured by the contract owner/deployer to break with the ERC20 standard in order to increase safety and security. Any of these changes may cause compatibility issues with some exchanges, wallets, dapps, etc.
 
 * By calling `_owner_enableTransferToContracts(false)`, OmniToken may be configured to prevent ERC20's `transfer` and `transferFrom` functions from sending tokens to non-wallet addresses (contracts) by default, reverting with `Can't transfer to a contract`. Hundreds of millions of dollars have been lost in the ERC20 ecosystem by sending ETH or ERC20 tokens to non-EOA addresses -- sending to a non-proxied contract that does not know how to use tokens that are sent to it is equivalent to burning the tokens irretrievably. Calling `_owner_enableTransferToContracts(false)` may break OmniToken's interactions with other contracts (but it is much safer).
-  * It is almost never the correct thing to do to send tokens directly to a contract, although some multisig wallets may support or even require sending ERC20 tokens directly to them, and if `_owner_enableTransferToContracts(false)` is called, these multisig wallets will not work unless you can use the ERC777/ERC1363/ERC4524 API instead of the ERC20 API to send tokens to the multisig wallet contract. Please ask your multisig wallet creator to support at least one of these interfaces for receiving tokens, preferably ERC1363 and/or ERC4524.
+  * It is almost never the correct thing to do to send tokens directly to a contract, although some multisig wallets may support or even require sending ERC20 tokens directly to them, and if `_owner_enableTransferToContracts(false)` is called, these multisig wallets will not work unless you can use the ERC1363/ERC4524 API instead of the ERC20 API to send tokens to the multisig wallet contract. Please ask your multisig wallet creator to support at least one of these interfaces for receiving tokens, preferably ERC1363 and/or ERC4524.
 * By calling `_owner_enableChangingAllowanceWithoutZeroing(false)` default, OmniToken prevents setting allowances to a nonzero value unless the current allowance has a zero value. This is to prevent an allowance double-spend race condition attack. This is the most well-known vulnerabilty of ERC20, and it is now accepted good security practice to zero your allowances before setting the allowance to a nonzero value. However, many deployed contracts do not do this, as this behavior is not required by the ERC20 standard. Calling `_owner_enableChangingAllowanceWithoutZeroing(false)` may break OmniToken's interactions with other contracts (but it is much safer).
 * By calling `_owner_setDefaultAllowanceExpirationSec(s)` for some small number of seconds, e.g. `s == 3600`, OmniToken enables the [time-limited token allowances](https://github.com/vrypan/EIPs/blob/master/EIPS/eip-draft_time_limited_token_allowances.md) mechanism by default, expiring allowances after the specified number of seconds. Allowances that do not expire, and that are forgotten about by token owners, have been the cause of many millions of dollars of lost tokens due to vulnerable dapps draining accounts. Calling `_owner_setDefaultAllowanceExpirationSec(s)` may break OmniToken's interactions with other contracts (but it is much safer).
   * To specify how long an allowance should remain valid on a case-by-case basis, use the `approveWithExpiration` ERC20 extension function.
 * By calling `_owner_enableUnlimitedAllowances(false)`, unlimited allowances (supported by some ERC20 exchanges) of value `2**256 - 1 == type(uint256).max` are rejected by Omnitoken. Unlimited allowances can cause you to lose all your tokens in case of a security vulnerability in a smart contract or dapp that drains your account: $120M was stolen in the [BADGER frontend injection attack](https://rekt.news/badger-rekt/) due to [unlimited allowances](https://kalis.me/unlimited-erc20-allowances/).
   * As a practical matter, "unlimited" allowances are supported on all ERC20 implementations by setting an allowance to some very large number that is less than `2**256 - 1`.
 
-Additionally OmniToken breaks with the ERC777 standard in one specific way, to increase security. ERC777 is complex and over-engineered, and despite adoption, there are proposals to deprecate its usage in favor of more recent standards like ERC1363 and ERC4524. Worst of all though, the ERC777 spec contains a gaping security hole.
-
-* The ERC777 standard requires calling the sender interface (if implemented) _before_ tokens have been sent from the sender to the receiver. This violates the Checks-Effects-Interactions order, therefore creating the potential for serious security vulnerabilities, such as double-spend attacks. Instead of omitting ERC777, OmniToken breaks with the ERC777 standard, notifying the sender _after_ tokens have been sent and allowances updated, rather than before. This means that OmniToken's ERC777 implementation is not strictly compatible with the ERC777 standard, and this may produce unexpected behavior if contracts rely on senders being notified of transfers before the transfer occurs. The owner/deployer of the OmniToken contract may call `_owner_enableERC777(false)` to eliminate the potential for problems caused by this incompatibility with the ERC777 sender notification standard, at the cost of completely disabling the ERC777 API.
-
 ### Additional security measures
 
 OmniToken is locked down against every known potential smart contract security problem.
 
 * The [Checks-Effects-Interactions pattern](https://blog.openzeppelin.com/reentrancy-after-istanbul/) is used everywhere in OmniToken to prevent reentrancy attacks.
-  * e.g. all state (e.g. allowances and balances) is finalized before calling external contracts via the ERC777/ERC1363/ERC4524 notification APIs, in order to follow the Checks-Effects-Interactions pattern.
+  * e.g. all state (e.g. allowances and balances) is finalized before calling external contracts via the ERC1363/ERC4524 notification APIs, in order to follow the Checks-Effects-Interactions pattern.
 * Strong reentrancy protection is implemented via function modifiers (`stateUpdater` for functions that modify core account state, and `extCaller` for functions that call other contracts; a `stateUpdater` cannot be called deeper in the call stack than an `extCaller`).
 * Several classes of vulnerability are prevented by using a recent version of Solidity to compile OmniToken:
   * Short address attacks are prevented by utilizing [Solidity >= 0.5.0](https://github.com/ethereum/solidity/pull/4224).
   * Overflow and underflow attacks are prevented by utilizing the default checked arithmetic support of [Solidity >= 0.8.0](https://blog.soliditylang.org/2020/12/16/solidity-v0.8.0-release-announcement/).
   * The fallback function is disabled (by not being defined in OmniToken), to block any [phantom function call](https://media.dedaub.com/phantom-functions-and-the-billion-dollar-no-op-c56f062ae49f) vulnerabilities from being triggered in callers, by using [Solidity >= 0.6.0](https://betterprogramming.pub/solidity-0-6-x-features-fallback-and-receive-functions-69895e3ffe). Also the `receive` and `fallback` payable functions are not defined by OmniToken, to prevent triggering phantom function call issues in other contracts.
-* Several APIs that are safer than ERC20 are implemented in OmniToken: ERC777, ERC1363 and ERC4524.
+* Several APIs that are safer than ERC20 are implemented in OmniToken: ERC1363, ERC4524, and a range of ERC20 extension APIs for increased safety.
 * The OmniToken and Dublr API is copiously documented using NatSpec, so that all functions, function parameters, events, and event parameters are explained in EtherScan and in the source code. This will reduce confusion about how to properly and safely call the API.
 * The OmniToken code is extensively unit-tested and 3rd-party-audited by multiple auditing companies.
 * Extensive parameter validity checks are implemented for all external functions.
-* All token APIs (ERC20, ERC777, ERC1363, and ERC4524) can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
+* All token APIs (ERC20, ERC1363, ERC4524, and EIP2612) can be individually enabled or disabled by the contract owner/deployer, in case a security problem is discovered with one of the APIs.
 
 ### Additional APIs
 
 OmniToken adds the following additional functionality to supported token APIs:
 
-* An ERC20-esque `burn` extension function was added for burning your own tokens (in addition to ERC777's own `burn` and `operatorBurn` functions). Note that there is currently no staking benefit or other benefit conferred upon a user by burning tokens, but such a benefit may one day be conferred by another contract (such as has been implemented for SHIB). Only burn tokens if you have some benefit conferred upon you by some other smart contract for doing so!
-* ERC165 and ERC1820 APIs are implemented for OmniToken so that other contracts can determine whether a deployed contract extends OmniToken, and/or to determine which interfaces OmniToken supports.
+* An ERC20-esque `burn` extension function was added for burning your own tokens. Note that there is currently no staking benefit or other benefit conferred upon a user by burning tokens, but such a benefit may one day be conferred by another contract (such as has been implemented for SHIB). Only burn tokens if you have some benefit conferred upon you by some other smart contract for doing so!
+* ERC165 and ERC1820 registrations are performed so that other contracts can determine whether a deployed contract extends OmniToken, and/or supports the interfaces defined by OmniToken.
 
 # Supported Interfaces
 
@@ -346,16 +342,16 @@ Individual token APIs may be enabled or disabled by the owner/deployer of the co
 
 ```
 function _owner_enableERC20(bool enable) external ownerOnly;
-function _owner_enableERC777(bool enable) external ownerOnly;
 function _owner_enableERC1363(bool enable) external ownerOnly;
 function _owner_enableERC4524(bool enable) external ownerOnly;
 function _owner_enableEIP2612(bool enable) external ownerOnly;
 ```
 
-## Token API proposals not implemented by OmniToken
+## Token API proposals intentionally not implemented by OmniToken
 
 There are several token standards or proposals that are intentionally not implemented by OmniToken, because they are incomplete, insecure/unsafe, or out of scope for OmniToken:
 
+* [ERC777](https://eips.ethereum.org/EIPS/eip-777): ERC-777 is now officially "Not Recommended: ERC-777 is difficult to implement properly, due to its susceptibility to different forms of attack." Its sender notification hook is required to be called before state is updated, which violates Checks-Effects-Interactions.
 * [ERC223](https://github.com/ethereum/EIPs/issues/223): This is a poorly-written standard that is not actually backwards-compatible with ERC20 in several ways as it is defined, e.g. (1) the author forgot to include the `approve` and `transferFrom` functions required by ERC20 in the ERC223 API; (2) it is in general impossible to determine whether the receiver function was successfully called rather than the fallback function (because the receiver notification hook has no return value), thereby opening senders to [phantom function call](https://media.dedaub.com/phantom-functions-and-the-billion-dollar-no-op-c56f062ae49f) vulnerabilities, and defeating the purpose for ERC223's creation of enforcing that tokens can only be sent to receivers that implement the correct receiver notification hook.
 * [ERC677](https://github.com/ethereum/EIPs/issues/677): has some of the same problems as ERC223, especially the issue with a successful call of the receiver function being indistinguishable from a call of the fallback function, because no return value is expected. This proposal is marked as "closed", and never made it to final approval stage, despite being implemented by numerous tokens. The function signatures have been reused in the (much better) ERC1363 standard, which implicitly supercedes ERC677.
 * [ERC827](https://github.com/ethereum/EIPs/issues/827): "This standard is still a draft and is proven to be unsafe to be used".

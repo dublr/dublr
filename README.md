@@ -4,7 +4,7 @@
 
 ## tl;dr
 
-Dublr is a fungible token smart contract that implements several token standards (ERC20, ERC777, ERC1363, ERC4524, EIP2612). It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
+Dublr is a fungible token smart contract that implements several token standards (ERC20, ERC1363, ERC4524, EIP2612), and a number of ERC20 extensions to mitigate security issues with ERC20. Dublr has its own built-in distributed exchange, so it is both a token and a DEX. Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
 ## Short overview
 
@@ -19,7 +19,7 @@ Dublr (ticker: DUBLR) is a new smart contract token for the Ethereum blockchain.
 ## Longer overview
 
 **Supported token APIs:** Dublr builds on the [OmniToken](contracts/main/OmniToken) library, which supports a wide range of APIs for:
-  * sending/using tokens using the ERC20, ERC777, ERC1363, ERC4524 and EIP2612 APIs;
+  * sending/using tokens using the ERC20, ERC1363, ERC4524 and EIP2612 APIs;
   * safe sending of ERC20-compatible tokens (to prevent the irretrievable loss of tokens when they are sent to the wrong address);
   * safe granting of 3rd party spending allowances (to counter a well-known "double allowance spend" vulnerability of ERC20);
   * time-limited allowances (so that forgotten allowances don't render a wallet vulnerable to being drained);
@@ -87,7 +87,7 @@ Note that there is no guarantee of sufficient demand or liquidity on the buy sid
 
 Use your MetaMask wallet to send tokens to another wallet.
 
-For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC777, ERC1363, ERC4524, or EIP2612 APIs](contracts/main/OmniToken) to send, spend, or use Dublr tokens, or to approve token spenders.
+For more advanced usage, you can use any dapp, contract, or commandline library or API that supports the [ERC20, ERC1363, ERC4524, or EIP2612 APIs](contracts/main/OmniToken) to send, spend, or use Dublr tokens, or to approve token spenders.
 
 ## Contract info
 

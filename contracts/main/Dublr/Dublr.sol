@@ -31,7 +31,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      *          of the contract.
      */
     constructor(uint256 initialMintPrice_NWCPerDUBLR_x1e9, uint256 initialMintAmountDUBLR)
-            OmniToken("Dublr", "DUBLR", "1", new address[](0), initialMintAmountDUBLR) {
+            OmniToken("Dublr", "DUBLR", "1", initialMintAmountDUBLR) {
         require(initialMintPrice_NWCPerDUBLR_x1e9 > 0, "Bad arg");
         
         // Record initial timestamp
@@ -627,7 +627,7 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Call the `_mint_stateUpdater` version rather than the `_mint` version to ensure that the minting
                 // function cannot call out to external contracts, so that Checks-Effects-Interactions is followed
                 // (since we're still updating state).
-                _mint_stateUpdater(buyer, buyer, amountToMintDUBLRWEI, "", "");
+                _mint_stateUpdater(buyer, buyer, amountToMintDUBLRWEI);
 
                 // Keep track of total tokens bought or minted
                 totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;

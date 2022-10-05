@@ -16,9 +16,6 @@ import "./interfaces/IERC20Burn.sol";
 import "./interfaces/IERC20SafeApproval.sol";
 import "./interfaces/IERC20IncreaseDecreaseAllowance.sol";
 import "./interfaces/IERC20TimeLimitedTokenAllowances.sol";
-import "./interfaces/IERC777.sol";
-import "./interfaces/IERC777Sender.sol";
-import "./interfaces/IERC777Recipient.sol";
 import "./interfaces/IERC1363.sol";
 import "./interfaces/IERC1363Spender.sol";
 import "./interfaces/IERC1363Receiver.sol";
@@ -36,7 +33,7 @@ import "./interfaces/IPolygonBridgeable.sol";
 abstract contract OmniTokenInternal is 
                       IERC20, IERC20Optional, IERC20Burn,
                       IERC20SafeApproval, IERC20IncreaseDecreaseAllowance, IERC20TimeLimitedTokenAllowances,
-                      IERC777, IERC1363, IERC4524, IEIP2612,
+                      IERC1363, IERC4524, IEIP2612,
                       IMultichain, IPolygonBridgeable {
 
     /**
@@ -54,19 +51,16 @@ abstract contract OmniTokenInternal is
         symbol = tokenSymbol;
         version = tokenVersion;
 
+        // Precompute EIP712 domain constants
         domainFields.push(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"));
         domainFields.push(keccak256(bytes(name)));
         domainFields.push(keccak256(bytes(version)));
 
-        // There must be an ERC1820 registry deployed on the network for ERC777
-        require(isContract(ERC1820_REGISTRY_ADDRESS), "No ERC1820 registry");
-        
         // Register thet ERC165 interface with itself
         registerInterfaceViaERC165(type(IERC165).interfaceId, true);
 
         // Enable and register interfaces
         _owner_enableERC20(true);
-        _owner_enableERC777(true);
         _owner_enableERC1363(true);
         _owner_enableERC4524(true);
         _owner_enableEIP2612(true);
@@ -82,29 +76,26 @@ abstract contract OmniTokenInternal is
     /** @dev The number of functions on the stack that call external contracts. */
     uint256 private _extCallerDepth;
 
-    /** @notice The ERC777 granularity. (Hardcoded to 1, for maximum compatibility with ERC20.) */
-    uint256 public constant override(IERC777) granularity = 1;
-
     /** @notice The total supply of tokens. */
-    uint256 public override(IERC20, IERC777) totalSupply;
+    uint256 public override(IERC20) totalSupply;
 
     /** @notice The number of tokens owned by a given address. */
-    mapping(address => uint256) public override(IERC20, IERC777) balanceOf;
+    mapping(address => uint256) public override(IERC20) balanceOf;
 
     /** @notice The name of the token. */
-    string public override(IERC20Optional, IERC777) name;
+    string public override(IERC20Optional) name;
 
     /** @notice The token symbol. */
-    string public override(IERC20Optional, IERC777) symbol;
-
-    /** @notice The token version. (Optional but supported in some token implementations.) */
-    string public version;
+    string public override(IERC20Optional) symbol;
 
     /**
      * @notice The number of decimal places used to display token balances.
-     * (Hardcoded to the ETH-standard value of 18, as required by ERC777.)
+     * (Hardcoded to the ETH-standard value of 18.)
      */
     uint8 public constant override(IERC20Optional) decimals = 18;
+
+    /** @notice The token version. (Optional but supported in some token implementations.) */
+    string public version;
 
     /** @dev Creator/owner of the contract. */
     address immutable internal _owner;
@@ -166,9 +157,6 @@ abstract contract OmniTokenInternal is
     /** @dev true if the ERC20 API is enabled. */
     bool internal _ERC20Enabled;
 
-    /** @dev true if the ERC777 API is enabled. */
-    bool internal _ERC777Enabled;
-
     /** @dev true if the ERC1363 API is enabled. */
     bool internal _ERC1363Enabled;
 
@@ -178,9 +166,6 @@ abstract contract OmniTokenInternal is
     /** @dev true if the EIP2612 permit API is enabled. */
     bool internal _EIP2612Enabled;
 
-    /** The number of function calls in the stack for functions marked with the erc777 modifier. */
-    uint256 internal _erc777CallDepth;
-
     /** The number of function calls in the stack for functions marked with the erc1363 modifier. */
     uint256 internal _erc1363CallDepth;
 
@@ -189,9 +174,9 @@ abstract contract OmniTokenInternal is
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
-     * @dev Enable or disable ERC20 support in the API.
-     * If disabled, also disables other token APIs that are a superset of ERC20, since these depend
-     * upon the ERC20 API. However disabling ERC20 does not disable the ERC777 API.
+     *
+     * @dev Enable or disable ERC20 support in the API. If disabled, also disables other token APIs that are a
+     * superset of ERC20, since these depend upon the ERC20 API.
      */
     function _owner_enableERC20(bool enable) public ownerOnly {
         _ERC20Enabled = enable;
@@ -199,8 +184,6 @@ abstract contract OmniTokenInternal is
         // ERC20
         registerInterfaceViaERC165(type(IERC20).interfaceId, enable);
 
-        // Other interface registrations are disabled to save on contract space
-        /*
         // ERC20 increase/decrease allowance extension
         registerInterfaceViaERC165(type(IERC20IncreaseDecreaseAllowance).interfaceId, enable);
                 
@@ -210,45 +193,12 @@ abstract contract OmniTokenInternal is
         // Don't register time-limited token allowance extension, because the OmniToken version uses seconds rather
         // than blocks for expiration, but the method type signature is the same
 
-        registerInterfaceViaERC1820("ERC20Token", enable);
-        */
+        // registerInterfaceViaERC1820("ERC20Token", enable);
     }
 
     /** @dev Require ERC20 to be enabled. */
     modifier erc20() {
         require(_ERC20Enabled, "Disabled");
-        _;
-    }
-
-    // --------------
-
-    /**
-     * @notice Only callable by the owner/deployer of the contract.
-     * @dev Enable or disable ERC777 support in the API.
-     */
-    function _owner_enableERC777(bool enable) public ownerOnly {
-        _ERC777Enabled = enable;
-        
-        registerInterfaceViaERC165(type(IERC777).interfaceId, enable);
-        
-        // registerInterfaceViaERC1820("ERC777Token", enable);
-    }
-
-    /** @dev Require ERC777 to be enabled, and mark the ERC777 API as active. */
-    modifier erc777() {
-        require(_ERC777Enabled, "Disabled");
-        unchecked { ++_erc777CallDepth; }
-        _;
-        unchecked { --_erc777CallDepth; }
-    }
-
-    /**
-     * @dev Require ERC777 to be enabled, without marking the ERC777 API as active (needed for `view` functions,
-     * of which there is one in the ERC777 API -- can't just remove `view` modifier since that function may be
-     * called statically by a caller).
-     */
-    modifier erc777View() {
-        require(_ERC777Enabled, "Disabled");
         _;
     }
 
@@ -409,8 +359,6 @@ abstract contract OmniTokenInternal is
      * lost tokens.
      *
      * Disabling this is not ERC20 compatible, but it's much safer.
-     * 
-     * See: https://101blockchains.com/erc20-vs-erc223-vs-erc777/
      *
      * @param enable Whether to enable transfer of tokens to non-EOA addresses (contracts).
      */
@@ -528,83 +476,8 @@ abstract contract OmniTokenInternal is
                         /* implementer = */ enable ? address(this) : address(0));
     }
 
-    /**
-     * @dev Look up an interface in the ERC1820 registry.
-     *
-     * @param addrToQuery Address being queried for the implementer of an interface.
-     * @param interfaceName the name of the interface as a string.
-     * @return interfaceAddr The address of the contract which implements the interface `hash` for `addr`, 
-     *         or `address(0)` if `addr` did not register an implementer for this interface (or if the
-     *         registry could not be called).
-     */
-    function lookUpInterfaceViaERC1820(address addrToQuery, string memory interfaceName)
-                internal view returns(address interfaceAddr) {
-        // extCaller modifier not required, since the ERC1820 registry is known and trusted
-        return IERC1820Registry(ERC1820_REGISTRY_ADDRESS)
-                .getInterfaceImplementer(addrToQuery, keccak256(bytes(interfaceName)));
-    }
-
     // -----------------------------------------------------------------------------------------------------------------
     // Functions for interacting with other contracts (modified with `extCaller` for reentrancy protection)
-
-    /**
-     * @dev Call the ERC777 sender's `tokensToSend` function. Should be called before any account state changes,
-     * according to the ERC777 spec, but we call this after account state is finalized (in violation of the spec),
-     * because calling an external contract before finalizing account state violates Checks-Effects-Interactions.
-     *
-     * @param sender The address holding the tokens being sent
-     * @param recipient The address of the recipient
-     * @param amount The amount of tokens to be sent
-     * @param data Data generated by the user to be passed to the recipient
-     * @param operatorData Data generated by the operator to be passed to the recipient
-     */
-    function call_ERC777TokensSender_tokensToSend(
-            address operator, address sender, address recipient, uint256 amount,
-            bytes memory data, bytes memory operatorData)
-            // Use extCaller modifier for reentrancy protection
-            internal extCaller {
-        address senderImplementation = lookUpInterfaceViaERC1820(sender, "ERC777TokensSender");
-        if (isContract(senderImplementation)) {
-            try IERC777Sender(senderImplementation)
-                    .tokensToSend(operator, sender, recipient, amount, data, operatorData) {
-                // Success
-            } catch {
-                // Don't revert if sender couldn't be called, just return false (currently ignored by caller)
-                // (it is optional for sender to implement ERC777 sender interface)
-            }
-        }
-    }
-
-    /**
-     * @dev Call the ERC777 recipient's `tokensReceived` function. Must be called after contract state is finalized.
-     *
-     * @param operator The address performing the send or mint.
-     * @param sender The address holding the tokens being sent.
-     * @param recipient The address of the recipient.
-     * @param amount The number of tokens to be sent.
-     * @param data Data generated by the user to be passed to the recipient.
-     * @param operatorData Data generated by the operator to be passed to the recipient.
-     */
-    function call_ERC777TokensRecipient_tokensReceived(
-            address operator, address sender, address recipient, uint256 amount,
-            bytes memory data, bytes memory operatorData)
-            // Use extCaller modifier for reentrancy protection
-            internal extCaller {
-        address recipientImpl = lookUpInterfaceViaERC1820(recipient, "ERC777TokensRecipient");
-        if (recipientImpl != address(0) && isContract(recipientImpl)) {
-            IERC777Recipient(recipientImpl)
-                    .tokensReceived(operator, sender, recipient, amount, data, operatorData);
-        } else {
-            // The ERC777 spec specifies that sending to a non-ERC777 contract must revert, while sending to a
-            // non-contract address (an EOA) must silently continue.
-            // https://eips.ethereum.org/EIPS/eip-777#backward-compatibility
-            // Note that `isContract` will return a false negative if the contract's constructor has not completed,
-            // and in this case the transaction will silently succeed when sending to a contract that does not
-            // implement the ERC777 receiver function. However, the reference implementation of ERC777 has this
-            // same problem, and there's no solution for this currently for Ethereum contracts.
-            require(!isContract(recipient), "Not ERC777 recipient");
-        }
-    }
 
     /**
      * @dev Call the ERC1363 spender's `onApprovalReceived` function.

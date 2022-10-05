@@ -2,7 +2,7 @@
 
 [Dublr](https://github.com/dublr/dublr) is a fungible token smart contract that implements several token standards. It has its own built-in distributed exchange (so it is both a token and a DEX). Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
-The token standards implemented by Dublr (ERC20, ERC777, ERC1363, ERC4524, EIP2612) are described in the documentation for the underlying [OmniToken library](../OmniToken).
+The token standards implemented by Dublr (ERC20, ERC1363, ERC4524, EIP2612) are described in the documentation for the underlying [OmniToken library](../OmniToken).
 
 The DEX functionality of Dublr is documented below.
 
