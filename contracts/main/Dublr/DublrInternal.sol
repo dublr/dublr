@@ -17,6 +17,8 @@ import "../OmniToken/OmniToken.sol";
  */
 abstract contract DublrInternal is OmniToken {
 
+    // Note that NWC is used to denote the symbol of the network currency (ETH for Ethereum, MATIC for Polygon, etc.)
+
     // -----------------------------------------------------------------------------------------------------------------
     // API enablement (needed in case a security issue is discovered with one of the APIs after the contract is created)
 
@@ -78,8 +80,8 @@ abstract contract DublrInternal is OmniToken {
     uint256 internal constant LN2_FIXED_POINT = 0x2c5c85fe;
 
     /**
-     * @dev One minus the trading fee of 0.15%, = floor((1 - 0.0015) * (1 << 30)). ETH amount of an order is multiplied
-     * by this to determine how much to send to sellers.
+     * @dev One minus the trading fee of 0.15%, = floor((1 - 0.0015) * (1 << 30)).
+     * network currency amount of an order is multiplied by this to determine how much to send to sellers.
      */
     uint256 internal constant SELLER_PAYMENT_FRACTION_FIXED_POINT = 0x3FE76C8B;
 
@@ -99,16 +101,16 @@ abstract contract DublrInternal is OmniToken {
     uint256 internal initialMintTimestamp;
 
     /**
-     * @dev The initial price of 1 DUBLR in ETH, multiplied by 1e9 (i.e. as a fixed point number),
+     * @dev The initial price of 1 DUBLR in network currency, multiplied by 1e9 (i.e. as a fixed point number),
      * when the contract constructor was called.
      */
-    uint256 internal initialMintPriceETHPerDUBLR_x1e9;
+    uint256 internal initialMintPriceNWCPerDUBLR_x1e9;
 
     /**
      * @notice The maximum price that DUBLR tokens can be listed for (to prevent numerical overflow),
      * multiplied by 1e9 (i.e. as a fixed point number).
      */
-    uint256 public maxPriceETHPerDUBLR_x1e9;
+    uint256 public maxPriceNWCPerDUBLR_x1e9;
 
     // -----------------------------------------------------------------------------------------------------------------
     // The distributed exchange orderbook
@@ -117,7 +119,7 @@ abstract contract DublrInternal is OmniToken {
     struct Order {
         address seller;
         uint256 timestamp;
-        uint256 priceETHPerDUBLR_x1e9;
+        uint256 priceNWCPerDUBLR_x1e9;
         uint256 amountDUBLRWEI;
     }
 
@@ -149,8 +151,8 @@ abstract contract DublrInternal is OmniToken {
      *         the above criteria.
      */
     function compare(Order memory order0, Order memory order1) private pure returns (int diff) {
-        return order0.priceETHPerDUBLR_x1e9 < order1.priceETHPerDUBLR_x1e9 ? int(-1)
-               : order0.priceETHPerDUBLR_x1e9 > order1.priceETHPerDUBLR_x1e9 ? int(1)
+        return order0.priceNWCPerDUBLR_x1e9 < order1.priceNWCPerDUBLR_x1e9 ? int(-1)
+               : order0.priceNWCPerDUBLR_x1e9 > order1.priceNWCPerDUBLR_x1e9 ? int(1)
                : order0.timestamp < order1.timestamp ? int(-1)
                : int(1);
     }
@@ -174,7 +176,7 @@ abstract contract DublrInternal is OmniToken {
 
     /**
      * @dev Standard up-heap algorithm for moving an order up a heap into its correct position.
-     * (Heap is a min-heap, ordered by priceETHPerDUBLR_x1e9, then by timestamp.)
+     * (Heap is a min-heap, ordered by priceNWCPerDUBLR_x1e9, then by timestamp.)
      *
      * @param orderToMove The order to bubble up the heap
      * @param startHeapIdx The heap index to start bubbling up the heap from. (The order at this index
@@ -201,7 +203,7 @@ abstract contract DublrInternal is OmniToken {
 
     /**
      * @dev Standard down-heap algorithm for moving an order down a heap into its correct position.
-     * (Heap is a min-heap, ordered by priceETHPerDUBLR_x1e9, then by timestamp.)
+     * (Heap is a min-heap, ordered by priceNWCPerDUBLR_x1e9, then by timestamp.)
      *
      * @param orderToMove The order to percolate down the heap
      * @param startHeapIdx The heap index to start percolating down the heap from. (The order at this index
@@ -219,7 +221,7 @@ abstract contract DublrInternal is OmniToken {
             }
             uint256 rightI;
             unchecked { rightI = leftI + 1; }  // Save gas
-            // Choose child with lower priceETHPerDUBLR_x1e9 (or older child, if children have same price)
+            // Choose child with lower priceNWCPerDUBLR_x1e9 (or older child, if children have same price)
             // -- this preserves the min-heap property relative to the other child, if the child with
             // a lower price or older order timestamp is moved up to the parent position
             uint256 smallerChildI = rightI < orderBook.length && compare(orderBook[rightI], orderBook[leftI]) < 0
@@ -252,7 +254,7 @@ abstract contract DublrInternal is OmniToken {
     /**
      * @dev Remove an entry from the orderbook min-heap by index.
      *
-     * (Min-heap is ordered by priceETHPerDUBLR_x1e9, then by timestamp.)
+     * (Min-heap is ordered by priceNWCPerDUBLR_x1e9, then by timestamp.)
      *
      * @param heapIdx The index of the heap entry to remove and return.
      * @return removedOrder The order at the given heap index.
@@ -296,60 +298,61 @@ abstract contract DublrInternal is OmniToken {
         return a < b ? a : b;
     }
     
-    /** The fixed point multiplier for priceETHPerDUBLR_x1e9 prices (i.e. 1e9). */
+    /** The fixed point multiplier for priceNWCPerDUBLR_x1e9 prices (i.e. 1e9). */
     uint256 internal constant PRICE_FIXED_POINT_MULTIPLIER = 1e9;
     
     /**
-     * @dev Convert DUBLR to ETH, rounding up, then clamping the result to a given max value.
+     * @dev Convert DUBLR to network currency, rounding up, then clamping the result to a given max value.
      *
-     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
-     * @param dublrAmt The amount of DUBLR to convert to ETH.
-     * @param maxEthAmt The max amount of ETH to clamp the return value to.
-     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price.
+     * @param priceNWCPerDUBLR_x1e9 The price in network currency per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to NWC.
+     * @param maxNWCAmt The max amount of NWC to clamp the return value to.
+     * @return equivNWCAmt the NWC-equivalent value of dublrAmt at the given price.
      */
-    function dublrToEthRoundUpClamped(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt, uint256 maxEthAmt)
-            internal pure returns (uint256 equivEthAmt) {
-        uint256 ethAmt = (dublrAmt * priceETHPerDUBLR_x1e9 + PRICE_FIXED_POINT_MULTIPLIER - 1)
+    function dublrToNWCRoundUpClamped(uint256 priceNWCPerDUBLR_x1e9, uint256 dublrAmt, uint256 maxNWCAmt)
+            internal pure returns (uint256 equivNWCAmt) {
+        uint256 nwcAmt = (dublrAmt * priceNWCPerDUBLR_x1e9 + PRICE_FIXED_POINT_MULTIPLIER - 1)
                 / PRICE_FIXED_POINT_MULTIPLIER;
-        return ethAmt < maxEthAmt ? ethAmt : maxEthAmt;
+        return nwcAmt < maxNWCAmt ? nwcAmt : maxNWCAmt;
     }
     
     /**
-     * @dev Convert DUBLR to ETH, rounding down.
+     * @dev Convert DUBLR to network currency, rounding down.
      *
-     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
-     * @param dublrAmt The amount of DUBLR to convert to ETH.
-     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price.
+     * @param priceNWCPerDUBLR_x1e9 The price in network currency per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to network currency.
+     * @return equivNWCAmt the network-currency-equivalent value of dublrAmt at the given price.
      */
-    function dublrToEthRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
-            internal pure returns (uint256 equivEthAmt) {
-        return dublrAmt * priceETHPerDUBLR_x1e9 / PRICE_FIXED_POINT_MULTIPLIER;
+    function dublrToNWCRoundDown(uint256 priceNWCPerDUBLR_x1e9, uint256 dublrAmt)
+            internal pure returns (uint256 equivNWCAmt) {
+        return dublrAmt * priceNWCPerDUBLR_x1e9 / PRICE_FIXED_POINT_MULTIPLIER;
     }
     
     /**
-     * @dev Convert DUBLR to ETH, subtracting market maker fee, and rounding to nearest 1 ETH.
+     * @dev Convert DUBLR to network currency, subtracting market maker fee, and rounding to nearest 1 NWC.
      *
-     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
-     * @param dublrAmt The amount of DUBLR to convert to ETH.
-     * @return equivEthAmt the ETH-equivalent value of dublrAmt at the given price, less market maker fee.
+     * @param priceNWCPerDUBLR_x1e9 The price in NWC per DUBLR, multiplied by 1e9.
+     * @param dublrAmt The amount of DUBLR to convert to NWC.
+     * @return equivNWCAmt the network-currency-equivalent value of dublrAmt at the given price,
+     *      less market maker fee.
      */
-    function dublrToEthLessMarketMakerFee(uint256 priceETHPerDUBLR_x1e9, uint256 dublrAmt)
-            internal pure returns (uint256 equivEthAmt) {
-        // Round to nearest 1 ETH
+    function dublrToNWCLessMarketMakerFee(uint256 priceNWCPerDUBLR_x1e9, uint256 dublrAmt)
+            internal pure returns (uint256 equivNWCAmt) {
+        // Round to nearest 1 NWC
         uint256 denom = PRICE_FIXED_POINT_MULTIPLIER * FIXED_POINT;
-        return (dublrAmt * priceETHPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
+        return (dublrAmt * priceNWCPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
     }
     
     /**
-     * @dev Convert ETH to DUBLR, rounding down.
+     * @dev Convert network currency to DUBLR, rounding down.
      *
-     * @param priceETHPerDUBLR_x1e9 The price in ETH per DUBLR, multiplied by 1e9.
-     * @param ethAmt The amount of ETH to convert to DUBLR.
-     * @return equivDublrAmt the DUBLR-equivalent value of ethAmt at the given price.
+     * @param priceNWCPerDUBLR_x1e9 The price in network currency per DUBLR, multiplied by 1e9.
+     * @param nwcAmt The amount of network currency to convert to DUBLR.
+     * @return equivDUBLRAmt the DUBLR-equivalent value of nwcAmt at the given price.
      */
-    function ethToDublrRoundDown(uint256 priceETHPerDUBLR_x1e9, uint256 ethAmt)
-            internal pure returns (uint256 equivDublrAmt) {
-        return ethAmt * PRICE_FIXED_POINT_MULTIPLIER / priceETHPerDUBLR_x1e9;
+    function nwcToDUBLRRoundDown(uint256 priceNWCPerDUBLR_x1e9, uint256 nwcAmt)
+            internal pure returns (uint256 equivDUBLRAmt) {
+        return nwcAmt * PRICE_FIXED_POINT_MULTIPLIER / priceNWCPerDUBLR_x1e9;
     }
 }
 

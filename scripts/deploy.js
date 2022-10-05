@@ -18,7 +18,13 @@ async function main() {
     // initialMintDUBLRWEI = mintETHWEIEquiv / mintPrice
     // == 2000000000000000000000000000 DUBLR wei (2B DUBLR, 10k ETH equiv @ 0.000005 ETH per DUBLR)
     const balanceBefore = await signer.getBalance();
-    const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
+    // const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
+    // Actually, don't deploy with any tokens assigned to owner:
+    // https://www.sec.gov/corpfin/framework-investment-contract-analysis-digital-assets
+    // There may be a reasonable expectation of profits if "The AP [Active Participant] is able to
+    // benefit from its efforts as a result of holding the same class of digital assets as those
+    // being distributed to the public."
+    const dublr = await Dublr.deploy(5000, 0);
     const balanceAfter = await signer.getBalance();
     const deploymentCost = balanceBefore.sub(balanceAfter);
     

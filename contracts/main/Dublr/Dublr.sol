@@ -18,29 +18,31 @@ import "./interfaces/IDublrDEX.sol";
  */
 contract Dublr is DublrInternal, IDublrDEX {
 
+    // Note that NWC is used to denote the symbol of the network currency (ETH for Ethereum, MATIC for Polygon, etc.)
+
     // -----------------------------------------------------------------------------------------------------------------
     // Constructor
 
     /**
      * @dev Constructor.
-     * @param initialMintPrice_ETHPerDUBLR_x1e9 the numerator of the initial price of DUBLR in
-     *          ETH per DUBLR token, multiplied by 1e9 (as a fixed point representation).
+     * @param initialMintPrice_NWCPerDUBLR_x1e9 the numerator of the initial price of DUBLR in
+     *          NWC per DUBLR token, multiplied by 1e9 (as a fixed point representation).
      * @param initialMintAmountDUBLR the one-time number of DUBLR tokens to mint for the owner on creation
      *          of the contract.
      */
-    constructor(uint256 initialMintPrice_ETHPerDUBLR_x1e9, uint256 initialMintAmountDUBLR)
+    constructor(uint256 initialMintPrice_NWCPerDUBLR_x1e9, uint256 initialMintAmountDUBLR)
             OmniToken("Dublr", "DUBLR", "1", new address[](0), initialMintAmountDUBLR) {
-        require(initialMintPrice_ETHPerDUBLR_x1e9 > 0, "Bad arg");
+        require(initialMintPrice_NWCPerDUBLR_x1e9 > 0, "Bad arg");
         
         // Record initial timestamp
         // solhint-disable-next-line not-rely-on-time
         initialMintTimestamp = block.timestamp;
         
         // Record initial mint price at contract creation time
-        initialMintPriceETHPerDUBLR_x1e9 = initialMintPrice_ETHPerDUBLR_x1e9;
+        initialMintPriceNWCPerDUBLR_x1e9 = initialMintPrice_NWCPerDUBLR_x1e9;
         
         // Calculate maximum valid price for sell orders (prevents DoS via numerical overflow)
-        maxPriceETHPerDUBLR_x1e9 = initialMintPriceETHPerDUBLR_x1e9 * MAX_SELL_ORDER_PRICE_FACTOR;
+        maxPriceNWCPerDUBLR_x1e9 = initialMintPriceNWCPerDUBLR_x1e9 * MAX_SELL_ORDER_PRICE_FACTOR;
 
         // Register DUBLR token via ERC1820
         registerInterfaceViaERC1820("DUBLRToken", true);
@@ -64,11 +66,11 @@ contract Dublr is DublrInternal, IDublrDEX {
             sellingEnabled: sellingEnabled,
             mintingEnabled: mintingEnabled,
             blockGasLimit: block.gaslimit,
-            balanceETHWEI: msg.sender.balance,
+            balanceNWCWEI: msg.sender.balance,
             balanceDUBLRWEI: balanceOf[msg.sender],
-            mintPriceETHPerDUBLR_x1e9: mintPrice(),
-            maxPriceETHPerDUBLR_x1e9: maxPriceETHPerDUBLR_x1e9,
-            minSellOrderValueETHWEI: minSellOrderValueETHWEI,
+            mintPriceNWCPerDUBLR_x1e9: mintPrice(),
+            maxPriceNWCPerDUBLR_x1e9: maxPriceNWCPerDUBLR_x1e9,
+            minSellOrderValueNWCWEI: minSellOrderValueNWCWEI,
             mySellOrder: mySellOrder(),
             allSellOrders: allSellOrders()
         });
@@ -78,26 +80,28 @@ contract Dublr is DublrInternal, IDublrDEX {
     // Minimum sell order value (mitigates DEX DoS attacks by sellers)
 
     /**
-     * @notice The ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via `sell()`.
+     * @notice The network currency value (in wei, == 10^-18 NWC) of the minimum sell order that may be listed for sale
+     *      via `sell()`. Assumes the network currency has 10^18 wei per currency unit.
      */
-    uint256 public override(IDublrDEX) minSellOrderValueETHWEI = 0.01 ether;
+    uint256 public override(IDublrDEX) minSellOrderValueNWCWEI = 0.01 ether;
 
     /**
      * @notice Only callable by the owner/deployer of the contract.
      *
-     * @dev Set the ETH value (in wei, == 10^-18 ETH) of the minimum sell order that may be listed for sale via
-     * a call to `sell()`.
-     * @param minValueETHWEI The minimum ETH value of a sell order (orders of smaller value will be rejected).
+     * @dev Set the network currency value (in wei, == 10^-18 NWC) of the minimum sell order that may be listed for sale
+     *      via a call to `sell()`.
+     * @param minValueNWCWEI The minimum network currency value of a sell order
+     *      (orders of smaller value will be rejected).
      */
-    function _owner_setMinSellOrderValueETHWEI(uint256 minValueETHWEI) external ownerOnly {
-        minSellOrderValueETHWEI = minValueETHWEI;
+    function _owner_setMinSellOrderValueNWCWEI(uint256 minValueNWCWEI) external ownerOnly {
+        minSellOrderValueNWCWEI = minValueNWCWEI;
     }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Determine the current mint price, based on block timestamp
 
     /**
-     * @notice The current mint price, in ETH per DUBLR (multiplied by `10^9`).
+     * @notice The current mint price, in network currency per DUBLR, multiplied by `10^9`.
      *
      * @dev Returns the current mint price for this token. Calls to `buy()` will buy tokens for sale
      * rather than minting new tokens, if there are tokens listed below the current mint price.
@@ -106,10 +110,10 @@ contract Dublr is DublrInternal, IDublrDEX {
      * is disabled. In practice, minting may no longer be triggered long before that time, if the supply
      * of coins for sale below the mint price exceeds demand.
      *
-     * @return mintPriceETHPerDUBLR_x1e9 The current mint price, in ETH per DUBLR, multiplied by `10^9`,
+     * @return mintPriceNWCPerDUBLR_x1e9 The current mint price, in network currency per DUBLR, multiplied by `10^9`,
      *              or zero if the minting time period has ended (after 30 doubling periods).
      */
-    function mintPrice() public view override(IDublrDEX) returns (uint256 mintPriceETHPerDUBLR_x1e9) {
+    function mintPrice() public view override(IDublrDEX) returns (uint256 mintPriceNWCPerDUBLR_x1e9) {
         // This is only a polynomial approximation of 2^t, so the doubling is not quite precise.
         // Factor increase in mint price during 1st doubling period: 1.999528
         // Factor increase in mint price during 30th doubling period: 1.973042
@@ -182,8 +186,8 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Multiply x by the initial mint price to get the current mint price in fixed point,
             // then convert back from fixed point.
             // Max value before division still stays within uint256 range for all reasonable
-            // values of initialMintPriceETHPerDUBLR_x1e9.
-            return x * initialMintPriceETHPerDUBLR_x1e9 / FIXED_POINT;
+            // values of initialMintPriceNWCPerDUBLR_x1e9.
+            return x * initialMintPriceNWCPerDUBLR_x1e9 / FIXED_POINT;
         }
     }
     
@@ -202,8 +206,9 @@ contract Dublr is DublrInternal, IDublrDEX {
     /**
      * @notice The price of the cheapest sell order in the order book for any user.
      *
-     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the cheapest sell order, in ETH per DUBLR
-     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the cheapest sell order,
+     *      in network currency per DUBLR (multiplied by `10^9`), and the number of DUBLR tokens
+     *      for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
      *      Both values are 0 if the orderbook is empty.
      */
     function cheapestSellOrder() external view override(IDublrDEX)
@@ -211,13 +216,13 @@ contract Dublr is DublrInternal, IDublrDEX {
         if (orderBook.length == 0) {
             // Orderbook is empty
             return PriceAndAmount({
-                priceETHPerDUBLR_x1e9: 0,
+                priceNWCPerDUBLR_x1e9: 0,
                 amountDUBLRWEI: 0
             });
         } else {
             Order storage order = orderBook[0];
             return PriceAndAmount({
-                priceETHPerDUBLR_x1e9: order.priceETHPerDUBLR_x1e9,
+                priceNWCPerDUBLR_x1e9: order.priceNWCPerDUBLR_x1e9,
                 amountDUBLRWEI: order.amountDUBLRWEI
             });
         }
@@ -226,8 +231,9 @@ contract Dublr is DublrInternal, IDublrDEX {
     /**
      * @notice The current sell order in the order book for the caller, or (0, 0) if none.
      *
-     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the caller's sell order, in ETH per DUBLR
-     *      (multiplied by `10^9`), and the number of DUBLR tokens for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
+     * @return priceAndAmountOfSellOrder The price of DUBLR tokens in the caller's sell order,
+     *      in network currency per DUBLR (multiplied by `10^9`), and the number of DUBLR tokens
+     *      for sale, in DUBLR wei (1 DUBLR = 10^18 DUBLR wei).
      *      Both values are 0 if the caller has no sell order.
      */
     function mySellOrder() public view override(IDublrDEX)
@@ -236,7 +242,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         if (heapIdxPlusOne == 0) {
             // Caller has no sell order
             return PriceAndAmount({
-                priceETHPerDUBLR_x1e9: 0,
+                priceNWCPerDUBLR_x1e9: 0,
                 amountDUBLRWEI: 0
             });
         } else {
@@ -248,7 +254,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             assert(order.seller == msg.sender);  // Sanity check
             
             return PriceAndAmount({
-                priceETHPerDUBLR_x1e9: order.priceETHPerDUBLR_x1e9,
+                priceNWCPerDUBLR_x1e9: order.priceNWCPerDUBLR_x1e9,
                 amountDUBLRWEI: order.amountDUBLRWEI
             });
         }
@@ -276,7 +282,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Add the order amount of the canceled sell order back into the seller's balance
             balanceOf[order.seller] += order.amountDUBLRWEI;
 
-            emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            emit CancelSellOrder(order.seller, order.priceNWCPerDUBLR_x1e9, order.amountDUBLRWEI);
         }
     }
 
@@ -286,8 +292,8 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @dev Note that the orders are returned in min-heap order by price, and not in increasing order by price.
      *
      * @return priceAndAmountOfSellOrders A list of all sell orders in the orderbook, in min-heap order by price.
-     * Each list item is a tuple consisting of the price of each token in ETH per DUBLR (multiplied by `10^9`),
-     * and the number of tokens for sale.
+     * Each list item is a tuple consisting of the price of each token in network currency per DUBLR
+     * (multiplied by `10^9`), and the number of tokens for sale.
      */
     function allSellOrders() public view override(IDublrDEX)
             // Returning an array requires ABI encoder v2, which is the default in Solidity >=0.8.0.
@@ -297,7 +303,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         for (uint256 i = 0; i < len; ) {
             Order storage order = orderBook[i];
             priceAndAmountOfSellOrders[i] = PriceAndAmount({
-                    priceETHPerDUBLR_x1e9: order.priceETHPerDUBLR_x1e9,
+                    priceNWCPerDUBLR_x1e9: order.priceNWCPerDUBLR_x1e9,
                     amountDUBLRWEI: order.amountDUBLRWEI});
             unchecked { ++i; }  // Save gas
         }
@@ -319,7 +325,7 @@ contract Dublr is DublrInternal, IDublrDEX {
             balanceOf[order.seller] += order.amountDUBLRWEI;
             delete sellerToHeapIdxPlusOne[order.seller];
             orderBook.pop();
-            emit CancelSellOrder(order.seller, order.priceETHPerDUBLR_x1e9, order.amountDUBLRWEI);
+            emit CancelSellOrder(order.seller, order.priceNWCPerDUBLR_x1e9, order.amountDUBLRWEI);
         }
     }
 
@@ -330,8 +336,9 @@ contract Dublr is DublrInternal, IDublrDEX {
      * @notice List DUBLR tokens for sale in the orderbook.
      *
      * @dev List some amount of the caller's DUBLR token balance for sale. This may be canceled any time before the
-     * tokens are purchased by a buyer. If tokens from the order are bought by a buyer, the ETH value of the purchased
+     * tokens are purchased by a buyer. If tokens from the order are bought by a buyer, the NWC value of the purchased
      * tokens are sent to the seller, minus a market maker fee of 0.15%.
+     * NWC represents the network currency (ETH for Ethereum, MATIC for Polygon, etc.).
      *
      * During the time that tokens are listed for sale, the amount of the sell order is deducted from the token
      * balance of the seller, to prevent double-spending. The amount is returned to the seller's token balance if
@@ -341,24 +348,24 @@ contract Dublr is DublrInternal, IDublrDEX {
      * canceled before the new order is placed (there may only be one order per seller in the order book at one
      * time).
      *
-     * Note that the equivalent ETH amount of the order must be at least `minSellOrderValueETHWEI`, to ensure
+     * Note that the equivalent NWC amount of the order must be at least `minSellOrderValueNWCWEI`, to ensure
      * that the order size is not unreasonably small (small orders cost buyers a lot of gas relative to the number
-     * of tokens they buy). The equivalent ETH amount of the order can be calculated as:
-     * `uint256 amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` . If `amountETHWEI` is not at least
-     * `minSellOrderValueETHWEI`, then the transaction will revert with "Order value too small".
+     * of tokens they buy). The equivalent NWC amount of the order can be calculated as:
+     * `uint256 amountNWCWEI = amountDUBLRWEI * priceNWCPerDUBLR_x1e9 / 1e9` . If `amountNWCWEI` is not at least
+     * `minSellOrderValueNWCWEI`, then the transaction will revert with "Order value too small".
      *
      * @notice Because payment for the sale of tokens is sent to the seller when the tokens are sold, the seller
-     * account must be able to receive ETH payments. In other words, the seller account must either be a non-contract
+     * account must be able to receive NWC payments. In other words, the seller account must either be a non-contract
      * wallet (an Externally-Owned Account or EOA), or a contract that implements one of the payable `receive()`
-     * or `fallback()` functions, in order to receive payment. If sending ETH to the seller fails because the
-     * seller account is a non-payable contract, then the ETH from the sale of tokens is forfeited.
+     * or `fallback()` functions, in order to receive payment. If sending NWC to the seller fails because the
+     * seller account is a non-payable contract, then the NWC from the sale of tokens is forfeited.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
      * security, and that the Dublr smart contract is not considered an unregistered or illegal exchange, by
      * the laws of any legal jurisdiction in which you hold or use the Dublr token.
      * 
      * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
-     * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
+     * event. It is your responsibility to record the purchase price and sale price in NWC or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
      * @notice The creator and deployer of Dublr makes no claims, guarantees, or promises, express or implied, about the
@@ -370,26 +377,26 @@ contract Dublr is DublrInternal, IDublrDEX {
      * conditions in the Legal Agreement and Disclaimers for Dublr and OmniToken:
      * https://github.com/dublr/dublr/blob/main/LEGAL.md
      *
-     * @param priceETHPerDUBLR_x1e9 the price to list the tokens for sale at, in ETH per DUBLR token, multiplied
+     * @param priceNWCPerDUBLR_x1e9 the price to list the tokens for sale at, in NWC per DUBLR token, multiplied
      *          by `10^9`.
      * @param amountDUBLRWEI the number of DUBLR tokens to sell, in units of DUBLR wei (1 DUBLR == `10^18` DUBLR wei).
      *          Must be less than or equal to the caller's balance. Additionally,
-     *          `amountETHWEI = amountDUBLRWEI * priceETHPerDUBLR_x1e9 / 1e9` must be greater than
-     *          the value of `minSellOrderValueETHWEI()`, to ensure trivial orders don't waste gas.
+     *          `amountNWCWEI = amountDUBLRWEI * priceNWCPerDUBLR_x1e9 / 1e9` must be greater than
+     *          the value of `minSellOrderValueNWCWEI()`, to ensure trivial orders don't waste gas.
      */
-    function sell(uint256 priceETHPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
+    function sell(uint256 priceNWCPerDUBLR_x1e9, uint256 amountDUBLRWEI) external override(IDublrDEX)
             // Modified with stateUpdater for reentrancy protection
             stateUpdater {
         require(sellingEnabled, "Selling disabled");
-        require(priceETHPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0
+        require(priceNWCPerDUBLR_x1e9 > 0 && amountDUBLRWEI > 0
                 // Make sure prices aren't exorbitant, to prevent DoS attacks where a seller triggers integer overflow
                 // for other users.
-                && priceETHPerDUBLR_x1e9 <= maxPriceETHPerDUBLR_x1e9, "Bad arg");
+                && priceNWCPerDUBLR_x1e9 <= maxPriceNWCPerDUBLR_x1e9, "Bad arg");
                 
         // To mitigate DoS attacks, we have to prevent sellers from listing lots of very small sell orders
         // from different addresses, by making it costly to do this. We require that the total amount of the
-        // sell order in ETH be greater than a specified minimum amount.
-        require(dublrToEthRoundDown(priceETHPerDUBLR_x1e9, amountDUBLRWEI) >= minSellOrderValueETHWEI,
+        // sell order in NWC be greater than a specified minimum amount.
+        require(dublrToNWCRoundDown(priceNWCPerDUBLR_x1e9, amountDUBLRWEI) >= minSellOrderValueNWCWEI,
                 "Order value too small");
 
         // Cancel existing order, if there is one, before placing new sell order
@@ -409,10 +416,10 @@ contract Dublr is DublrInternal, IDublrDEX {
                 seller: msg.sender,
                 // solhint-disable-next-line not-rely-on-time
                 timestamp: block.timestamp,
-                priceETHPerDUBLR_x1e9: priceETHPerDUBLR_x1e9,
+                priceNWCPerDUBLR_x1e9: priceNWCPerDUBLR_x1e9,
                 amountDUBLRWEI: amountDUBLRWEI}));
 
-        emit ListSellOrder(seller, priceETHPerDUBLR_x1e9, amountDUBLRWEI);
+        emit ListSellOrder(seller, priceNWCPerDUBLR_x1e9, amountDUBLRWEI);
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -421,48 +428,48 @@ contract Dublr is DublrInternal, IDublrDEX {
     /** @dev The amount of change to give to a seller. */
     struct SellerPayment {
         address seller;
-        uint256 amountETHWEI;
+        uint256 amountNWCWEI;
     } 
 
     /**
-     * @dev Amount in ETH to send to sellers. This will be cleared at the end of each buy() call, it is only
+     * @dev Amount in NWC to send to sellers. This will be cleared at the end of each buy() call, it is only
      * held in storage rather than memory because Solidity does not support dynamic arrays in memory.
      */
     SellerPayment[] private sellerPaymentsTemp;
 
     /**
      * @dev Buy sell orders and then mint new tokens. Updates state of the contract, but does not call external
-     * contracts (i.e. does not call `sendETH`).
+     * contracts (i.e. does not call `sendNWC`).
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
-     *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
-     *      bought or minted by the time all ETH funds of the transaction have been expended, then the transaction is
-     *      reverted and the full provided ETH amount is refunded (minus gas spent, since this is not refundable).
+     *      provided (payable) NWC value should buy, in order to prevent slippage. If at least this total number is not
+     *      bought or minted by the time all NWC funds of the transaction have been expended, then the transaction is
+     *      reverted and the full provided NWC amount is refunded (minus gas spent, since this is not refundable).
      *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
      *      transaction is pending.
      * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
      * @param allowMinting If `true`, allow the minting of new tokens at the current mint price.
-     * @return amountToRefundToBuyerETHWEI The amount of unspent ETH to refund to the buyer.
-     * @return sellerPayments The amount(s) of ETH to send to the sellers.
+     * @return amountToRefundToBuyerNWCWEI The amount of unspent NWC to refund to the buyer.
+     * @return sellerPayments The amount(s) of NWC to send to the sellers.
      */
     function _buy_stateUpdater(uint256 minimumTokensToBuyOrMintDUBLRWEI, bool allowBuying, bool allowMinting)
             // Modified with stateUpdater for reentrancy protection
             private stateUpdater
-            returns (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory sellerPayments) {
+            returns (uint256 amountToRefundToBuyerNWCWEI, SellerPayment[] memory sellerPayments) {
         // The buyer is the caller
         address buyer = msg.sender;
 
-        // Get the ETH value sent to this function in units of ETH wei
-        uint256 buyOrderRemainingETHWEI = msg.value;
+        // Get the NWC value sent to this function in units of NWC wei
+        uint256 buyOrderRemainingNWCWEI = msg.value;
 
         // Keep track of total tokens bought or minted
         uint256 totBoughtOrMintedDUBLRWEI = 0;
 
         // Calculate the mint price -- the price is 0 if minting has finished
         // (MAX_DOUBLING_TIME_SEC seconds or more after contract deployment, mintPrice() will return 0)
-        uint256 mintPriceETHPerDUBLR_x1e9 = mintPrice();
+        uint256 mintPriceNWCPerDUBLR_x1e9 = mintPrice();
 
-        // Amount of ETH to refund to (buyer, and amounts to send to sellers at end of transaction
+        // Amount of NWC to refund to (buyer, and amounts to send to sellers at end of transaction
         assert(sellerPaymentsTemp.length == 0);  // Sanity check
 
         // Buying sell orders: -----------------------------------------------------------------------------------------
@@ -474,9 +481,9 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // buying stage. This allows exchange function to be shut down or disabled if necessary without
                 // affecting minting.
                 buyingEnabled && allowBuying
-                // Iterate through orders in increasing order of priceETHPerDUBLR_x1e9, until we run out of ETH,
+                // Iterate through orders in increasing order of priceNWCPerDUBLR_x1e9, until we run out of NWC,
                 // or until we run out of orders.
-                && buyOrderRemainingETHWEI > 0 && orderBook.length > 0) {
+                && buyOrderRemainingNWCWEI > 0 && orderBook.length > 0) {
 
             // Find the lowest-priced order (this is a memory copy, because heapRemove(0) may be called below)
             Order memory sellOrder = orderBook[0];
@@ -489,8 +496,8 @@ contract Dublr is DublrInternal, IDublrDEX {
             }
 
             // Stop iterating through sell orders once the order price is above the current mint price.
-            if (mintPriceETHPerDUBLR_x1e9 > 0
-                    && sellOrder.priceETHPerDUBLR_x1e9 > mintPriceETHPerDUBLR_x1e9) {
+            if (mintPriceNWCPerDUBLR_x1e9 > 0
+                    && sellOrder.priceNWCPerDUBLR_x1e9 > mintPriceNWCPerDUBLR_x1e9) {
                 break;
             }
             
@@ -498,16 +505,16 @@ contract Dublr is DublrInternal, IDublrDEX {
 
             uint256 amountToBuyDUBLRWEI;
             {
-                // Determine how many whole DUBLR can be purchased with the buyer's remaining ETH balance,
+                // Determine how many whole DUBLR can be purchased with the buyer's remaining NWC balance,
                 // at the current price of this order. (Whole DUBLR => round down.)
                 uint256 amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI =
-                        ethToDublrRoundDown(sellOrder.priceETHPerDUBLR_x1e9, buyOrderRemainingETHWEI);
+                        nwcToDUBLRRoundDown(sellOrder.priceNWCPerDUBLR_x1e9, buyOrderRemainingNWCWEI);
 
                 if (amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI == 0) {
                     // The amount of DUBLR that the buyer can afford at the sell order price is less than 1 token,
                     // so the buyer can't continue buying orders (order prices in the rest of the order book, and
                     // the mint price, have to be at least as high as the current price). Stop going through order
-                    // book, and refunded remaining ETH balance to the buyer as change.
+                    // book, and refunded remaining NWC balance to the buyer as change.
                     // The minting price must be higher than the current order, so minting will not be
                     // triggered either.
                     skipMinting = true;
@@ -521,20 +528,20 @@ contract Dublr is DublrInternal, IDublrDEX {
                 amountToBuyDUBLRWEI = min(sellOrder.amountDUBLRWEI, amountBuyerCanAffordAtSellOrderPrice_asDUBLRWEI);
             }
 
-            // Given the whole number of DUBLR tokens to be purchased, calculate the ETH amount to charge buyer,
+            // Given the whole number of DUBLR tokens to be purchased, calculate the NWC amount to charge buyer,
             // and deduct the market maker fee from the amount to send the seller.
-            // Round up amount to charge buyer and round down amount to send seller to nearest 1 ETH wei.
-            uint256 amountToChargeBuyerETHWEI = dublrToEthRoundUpClamped(
-                    sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
+            // Round up amount to charge buyer and round down amount to send seller to nearest 1 NWC wei.
+            uint256 amountToChargeBuyerNWCWEI = dublrToNWCRoundUpClamped(
+                    sellOrder.priceNWCPerDUBLR_x1e9, amountToBuyDUBLRWEI,
                     // Clamping shouldn't be needed, but to guarantee safe rounding up,
                     // clamp amount to available balance
-                    buyOrderRemainingETHWEI);
-            // Invariant: amountToChargeBuyerETHWEI <= buyOrderRemainingETHWEI
+                    buyOrderRemainingNWCWEI);
+            // Invariant: amountToChargeBuyerNWCWEI <= buyOrderRemainingNWCWEI
 
-            // Convert the number of DUBLR tokens bought into an ETH balance to send to seller, after subtracting
+            // Convert the number of DUBLR tokens bought into an NWC balance to send to seller, after subtracting
             // the trading fee.
-            uint256 amountToSendToSellerETHWEI =
-                    dublrToEthLessMarketMakerFee(sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI);
+            uint256 amountToSendToSellerNWCWEI =
+                    dublrToNWCLessMarketMakerFee(sellOrder.priceNWCPerDUBLR_x1e9, amountToBuyDUBLRWEI);
 
             // Transfer DUBLR from sell order to buyer: ----------------------------------------------------------------
 
@@ -558,27 +565,27 @@ contract Dublr is DublrInternal, IDublrDEX {
             // Keep track of total tokens bought or minted
             totBoughtOrMintedDUBLRWEI += amountToBuyDUBLRWEI;
 
-            // Transfer ETH from buyer to seller: ----------------------------------------------------------------------
+            // Transfer NWC from buyer to seller: ----------------------------------------------------------------------
 
-            // Record the amount of ETH to be sent to the seller (there may be several sellers involved in one buy)
-            if (amountToSendToSellerETHWEI > 0) {
+            // Record the amount of NWC to be sent to the seller (there may be several sellers involved in one buy)
+            if (amountToSendToSellerNWCWEI > 0) {
                 sellerPaymentsTemp.push(
-                        SellerPayment({seller: sellOrder.seller, amountETHWEI: amountToSendToSellerETHWEI}));
+                        SellerPayment({seller: sellOrder.seller, amountNWCWEI: amountToSendToSellerNWCWEI}));
             }
 
-            // Deduct amount spent on tokens from the sell order from the remaining ETH balance of buyer
-            unchecked { buyOrderRemainingETHWEI -= amountToChargeBuyerETHWEI; }  // Save gas (see invariant above)
+            // Deduct amount spent on tokens from the sell order from the remaining NWC balance of buyer
+            unchecked { buyOrderRemainingNWCWEI -= amountToChargeBuyerNWCWEI; }  // Save gas (see invariant above)
             
             // Fees to send to owner: ----------------------------------------------------------------------------------
             
-            // Fees to send to owner are (amountToChargeBuyerETHWEI - amountToSendToSellerETHWEI).
-            // We don't need to actually calculate this or store it anywhere, because we can calculate how much ETH is
+            // Fees to send to owner are (amountToChargeBuyerNWCWEI - amountToSendToSellerNWCWEI).
+            // We don't need to actually calculate this or store it anywhere, because we can calculate how much NWC is
             // left over from `msg.value` after sellers have been paid and buyer has received change.
 
             // Emit Dublr BuySellOrder event
             emit BuySellOrder(buyer, sellOrder.seller,
-                    sellOrder.priceETHPerDUBLR_x1e9, amountToBuyDUBLRWEI,
-                    sellOrderRemainingDUBLRWEI, amountToSendToSellerETHWEI, amountToChargeBuyerETHWEI);
+                    sellOrder.priceNWCPerDUBLR_x1e9, amountToBuyDUBLRWEI,
+                    sellOrderRemainingDUBLRWEI, amountToSendToSellerNWCWEI, amountToChargeBuyerNWCWEI);
         }
 
         // If own sell order was skipped, add it back into the orderbook
@@ -588,31 +595,31 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // Minting: ----------------------------------------------------------------------------------------------------
 
-        // If the buyer's ETH balance is still greater than zero after there are no more sell orders below the
+        // If the buyer's NWC balance is still greater than zero after there are no more sell orders below the
         // mint price, switch to minting
         if (
             // Only mint if minting is enabled by owner and is allowed by the caller
             mintingEnabled && allowMinting && !skipMinting
             // If mint price is 0, then the minting period has finished
-            && mintPriceETHPerDUBLR_x1e9 > 0
-            // Only mint if there is a remaining ETH balance
-            && buyOrderRemainingETHWEI > 0) {
+            && mintPriceNWCPerDUBLR_x1e9 > 0
+            // Only mint if there is a remaining NWC balance
+            && buyOrderRemainingNWCWEI > 0) {
 
             // Mint DUBLR tokens into buyer's account: -----------------------------------------------------------------
 
-            // Convert the amount remaining of the buy order from ETH to DUBLR.
+            // Convert the amount remaining of the buy order from NWC to DUBLR.
             // Round down to the nearest whole DUBLR wei.
-            uint256 amountToMintDUBLRWEI = ethToDublrRoundDown(
-                    mintPriceETHPerDUBLR_x1e9, buyOrderRemainingETHWEI);
+            uint256 amountToMintDUBLRWEI = nwcToDUBLRRoundDown(
+                    mintPriceNWCPerDUBLR_x1e9, buyOrderRemainingNWCWEI);
                     
-            // Convert the whole number of DUBLR wei to mint back into ETH wei to spend on minting.
-            // Round up to the nearest 1 ETH wei.
-            uint256 amountToMintETHWEI = dublrToEthRoundUpClamped(
-                    mintPriceETHPerDUBLR_x1e9, amountToMintDUBLRWEI,
+            // Convert the whole number of DUBLR wei to mint back into NWC wei to spend on minting.
+            // Round up to the nearest 1 NWC wei.
+            uint256 amountToMintNWCWEI = dublrToNWCRoundUpClamped(
+                    mintPriceNWCPerDUBLR_x1e9, amountToMintDUBLRWEI,
                     // Clamping shouldn't be needed, but to guarantee safe rounding up,
                     // clamp amount to available balance
-                    buyOrderRemainingETHWEI);
-            // Invariant: amountToMintETHWEI <= buyOrderRemainingETHWEI
+                    buyOrderRemainingNWCWEI);
+            // Invariant: amountToMintNWCWEI <= buyOrderRemainingNWCWEI
 
             // Only mint if the number of DUBLR tokens to mint is at least 1
             if (amountToMintDUBLRWEI > 0) {
@@ -625,25 +632,25 @@ contract Dublr is DublrInternal, IDublrDEX {
                 // Keep track of total tokens bought or minted
                 totBoughtOrMintedDUBLRWEI += amountToMintDUBLRWEI;
 
-                // Deduct ETH amount spent on minting
-                unchecked { buyOrderRemainingETHWEI -= amountToMintETHWEI; }  // Save gas (see invariant above)
+                // Deduct NWC amount spent on minting
+                unchecked { buyOrderRemainingNWCWEI -= amountToMintNWCWEI; }  // Save gas (see invariant above)
 
                 // Emit Dublr Mint event (provides more useful info than other mint events)
-                emit Mint(buyer, mintPriceETHPerDUBLR_x1e9, amountToMintETHWEI, amountToMintDUBLRWEI);
+                emit Mint(buyer, mintPriceNWCPerDUBLR_x1e9, amountToMintNWCWEI, amountToMintDUBLRWEI);
             }
         }
         
         // Refund unspent balance: -------------------------------------------------------------------------------------
         
-        // If the remaining ETH balance is greater than zero, it could not all be spent -- refund to buyer
-        if (buyOrderRemainingETHWEI > 0) {
-            amountToRefundToBuyerETHWEI = buyOrderRemainingETHWEI;  // Return param
+        // If the remaining NWC balance is greater than zero, it could not all be spent -- refund to buyer
+        if (buyOrderRemainingNWCWEI > 0) {
+            amountToRefundToBuyerNWCWEI = buyOrderRemainingNWCWEI;  // Return param
             // Emit RefundChange event
-            emit RefundChange(buyer, buyOrderRemainingETHWEI);
-            // All remaining ETH is used up.
-            buyOrderRemainingETHWEI = 0;
+            emit RefundChange(buyer, buyOrderRemainingNWCWEI);
+            // All remaining NWC is used up.
+            buyOrderRemainingNWCWEI = 0;
         } else {
-            amountToRefundToBuyerETHWEI = 0;  // Return param
+            amountToRefundToBuyerNWCWEI = 0;  // Return param
         }
         
         // Protect against slippage: -----------------------------------------------------------------------------------
@@ -654,7 +661,7 @@ contract Dublr is DublrInternal, IDublrDEX {
         // Finalize state: ---------------------------------------------------------------------------------------------
 
         // In order to prevent the opportunity for reentrancy attacks, a copy of the sellerPaymentsTemp array
-        // is made in order to ensure sellerPaymentsTemp is emptied before any sendETH call to external contracts
+        // is made in order to ensure sellerPaymentsTemp is emptied before any sendNWC call to external contracts
         // (otherwise looping through the sellerPaymentsTemp array to send payments to sellers would mix state
         // updates with calling external contracts, breaking the Checks-Effects-Interactions pattern).
         uint256 numSellers = sellerPaymentsTemp.length;
@@ -667,28 +674,29 @@ contract Dublr is DublrInternal, IDublrDEX {
     }
 
     /**
-     * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the ETH `payableAmount`/`value`
+     * @notice Buy the cheapest DUBLR tokens available, for the equivalent value of the NWC `payableAmount`/`value`
      * sent with the transaction.
      *
-     * @dev A payable function that exchanges the ETH value attached to the transaction for DUBLR tokens.
+     * @dev A payable function that exchanges the NWC value attached to the transaction for DUBLR tokens.
+     * (NWC represents the network currency (ETH for Ethereum, MATIC for Polygon, etc.).)
      *
      * Buys tokens listed for sale, if any sell orders are listed below the mint price and `allowBuying == true`.
-     * Sell orders are purchased in increasing order of price, until the supplied ETH amount runs out or the mint price
-     * is reached. Then this function will mint new tokens at the current mint price with the remaining ETH balance, if
+     * Sell orders are purchased in increasing order of price, until the supplied NWC amount runs out or the mint price
+     * is reached. Then this function will mint new tokens at the current mint price with the remaining NWC balance, if
      * `allowMinting == true`, increasing total supply.
      *
      * At least `minimumTokensToBuyOrMintDUBLRWEI` DUBLR tokens must be either purchased from sell orders or minted,
      * otherwise the transaction will revert with "Too much slippage". You can determine how many coins you expect
-     * to receive for a given ETH payable amount, by examining the order book (call `allSellOrders()` to get all
+     * to receive for a given NWC payable amount, by examining the order book (call `allSellOrders()` to get all
      * orderbook entries, and then sort them in increasing order of price).
      *
-     * Change is also refunded to the buyer if the buyer sends an ETH amount that is not a whole multiple of the token
-     * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded ETH payments for the
+     * Change is also refunded to the buyer if the buyer sends an NWC amount that is not a whole multiple of the token
+     * price, and a `RefundChange` event is emitted. The buyer must be able to receive refunded NWC payments for the
      * `buy()` function to succed: the buyer account must either be a non-contract wallet (an EOA), or a contract
      * that implements one of the payable `receive()` or `fallback()` functions to receive payment.
      *
      * For very large buy amounts with many small sell orders listed on the DEX, the amount of gas required to run the
-     * transaction may exceed the block gas limit. In this case, the only way to buy tokens is to reduce the ETH amount
+     * transaction may exceed the block gas limit. In this case, the only way to buy tokens is to reduce the NWC amount
      * that is sent.
      *
      * @notice By calling this function, you confirm that the Dublr token is not considered an unregistered or illegal
@@ -696,7 +704,7 @@ contract Dublr is DublrInternal, IDublrDEX {
      * the laws of any legal jurisdiction in which you hold or use the Dublr token.
      * 
      * @notice In some jurisdictions, such as the United States, any use, transfer, or sale of a token is a taxable
-     * event. It is your responsibility to record the purchase price and sale price in ETH or your local currency
+     * event. It is your responsibility to record the purchase price and sale price in NWC or your local currency
      * equivalent for each use, transfer, or sale of DUBLR tokens you own, and to pay the taxes due.
      *
      * @notice The creator and deployer of Dublr makes no claims, guarantees, or promises, express or implied, about the
@@ -709,9 +717,9 @@ contract Dublr is DublrInternal, IDublrDEX {
      * https://github.com/dublr/dublr/blob/main/LEGAL.md
      *
      * @param minimumTokensToBuyOrMintDUBLRWEI The minimum number of tokens (in DUBLR wei, i.e. 10^-18 DUBLR) that the
-     *      provided (payable) ETH value should buy, in order to prevent slippage. If at least this total number is not
-     *      bought or minted by the time all ETH funds of the transaction have been expended, then the transaction is
-     *      reverted and the full provided ETH amount is refunded (minus gas spent, since this is not refundable).
+     *      provided (payable) NWC value should buy, in order to prevent slippage. If at least this total number is not
+     *      bought or minted by the time all NWC funds of the transaction have been expended, then the transaction is
+     *      reverted and the full provided NWC amount is refunded (minus gas spent, since this is not refundable).
      *      This mechanism attempts to protect the user from any drastic and unfavorable price changes while their
      *      transaction is pending.
      * @param allowBuying If `true`, allow the buying of any tokens listed for sale below the mint price.
@@ -724,51 +732,51 @@ contract Dublr is DublrInternal, IDublrDEX {
 
         // CHECKS / EFFECTS / EVENTS:
         
-        (uint256 amountToRefundToBuyerETHWEI, SellerPayment[] memory sellerPayments) =
+        (uint256 amountToRefundToBuyerNWCWEI, SellerPayment[] memory sellerPayments) =
                 _buy_stateUpdater(minimumTokensToBuyOrMintDUBLRWEI, allowBuying, allowMinting);
 
         // INTERACTIONS:
 
-        // Transfer ETH from buyer to seller, and ETH fees to owner (`sendETH` is an `extCaller` function)
+        // Transfer NWC from buyer to seller, and NWC fees to owner (`sendNWC` is an `extCaller` function)
         
-        // Send any pending ETH payments to sellers
-        uint256 totalSentToSellersAndBuyerETHWEI = 0;
+        // Send any pending NWC payments to sellers
+        uint256 totalSentToSellersAndBuyerNWCWEI = 0;
         uint256 numSellers = sellerPayments.length;
         for (uint256 i = 0; i < numSellers; ) {
             SellerPayment memory sellerPayment = sellerPayments[i];
             // By attempting to send with `errorMessageOnFail == ""`, if sending fails, then instead of reverting,
-            // sendETH will return false. We need to catch this case, because otherwise, a seller could execute
-            // a DoS on the DEX by refusing to accept ETH payments, since every buy attempt would fail. Due to
+            // sendNWC will return false. We need to catch this case, because otherwise, a seller could execute
+            // a DoS on the DEX by refusing to accept NWC payments, since every buy attempt would fail. Due to
             // Checks-Effects-Interactions, we can't go back at this point and just cancel the seller's order
             // -- all state has to have already been finalized. We also can't cancel the buy order, because
             // this is not the buyer's fault. Therefore, it is the seller's responsibility to ensure that they
-            // can receive ETH payments, and as noted in the documentation for the `sell` function, if they
-            // can't or won't accept ETH payment, they forfeit the payment.
+            // can receive NWC payments, and as noted in the documentation for the `sell` function, if they
+            // can't or won't accept NWC payment, they forfeit the payment.
             (bool success, bytes memory returnData) =
-                    sendETH(sellerPayment.seller, sellerPayment.amountETHWEI, /* errorMessageOnFail = */ "");
+                    sendNWC(sellerPayment.seller, sellerPayment.amountNWCWEI, /* errorMessageOnFail = */ "");
             if (success) {
-                // sellerPayment.amountETHWEI was sent to seller
-                totalSentToSellersAndBuyerETHWEI += sellerPayment.amountETHWEI;
+                // sellerPayment.amountNWCWEI was sent to seller
+                totalSentToSellersAndBuyerNWCWEI += sellerPayment.amountNWCWEI;
             } else {
                 // if (!success), then payment is forfeited and sent to owner, because seller does not accept
-                // ETH, and we must prevent seller from being able to attack the exchange by causing all `buy()`
+                // NWC, and we must prevent seller from being able to attack the exchange by causing all `buy()`
                 // calls to revert. Log this case.
                 // (Disable Slither static analyzer warning, there is no way to emit this event before all
                 // external function calls are made)
                 // slither-disable-next-line reentrancy-events
-                emit Unpayable(sellerPayment.seller, sellerPayment.amountETHWEI, returnData);
+                emit Unpayable(sellerPayment.seller, sellerPayment.amountNWCWEI, returnData);
             }
             unchecked { ++i; }  // Save gas
         }
         
-        // Refund any unspent ETH back to buyer. Reverts if the buyer does not accept payment. (This is different than
+        // Refund any unspent NWC back to buyer. Reverts if the buyer does not accept payment. (This is different than
         // the behavior when a seller does not accept payment, because a buyer not accepting payment cannot
         // shut down the whole exchange.)
-        sendETH(/* buyer = */ msg.sender, amountToRefundToBuyerETHWEI, "Can't refund change");
-        totalSentToSellersAndBuyerETHWEI += amountToRefundToBuyerETHWEI;
+        sendNWC(/* buyer = */ msg.sender, amountToRefundToBuyerNWCWEI, "Can't refund change");
+        totalSentToSellersAndBuyerNWCWEI += amountToRefundToBuyerNWCWEI;
         
-        // Send any remaining ETH (trading fees + minting fees) to owner
-        sendETH(_owner, address(this).balance, "Can't pay owner");
+        // Send any remaining NWC (trading fees + minting fees) to owner
+        sendNWC(_owner, address(this).balance, "Can't pay owner");
     }
 }
 
