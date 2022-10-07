@@ -80,12 +80,6 @@ abstract contract DublrInternal is OmniToken {
     uint256 internal constant LN2_FIXED_POINT = 0x2c5c85fe;
 
     /**
-     * @dev One minus the trading fee of 0.15%, = floor((1 - 0.0015) * (1 << 30)).
-     * network currency amount of an order is multiplied by this to determine how much to send to sellers.
-     */
-    uint256 internal constant SELLER_PAYMENT_FRACTION_FIXED_POINT = 0x3FE76C8B;
-
-    /**
      * @notice The maximum price a sell order can be listed for, as a ratio compared to the initial mint price.
      * 1e15 => price can be 1 million billion times higher than the initial mint price. The mint price increases
      * ~1 billion times during 30 doubling periods, so this allows a maximum further growth of 1 million times.
@@ -93,6 +87,27 @@ abstract contract DublrInternal is OmniToken {
      * integer overflow when price is multiplied by amount, etc.
      */
     uint256 internal constant MAX_SELL_ORDER_PRICE_FACTOR = 1e15;
+
+    /**
+     * @dev One minus the trading fee of 0.15%, multiplied by (1<<30), = floor((1 - 0.0015) * (1 << 30)).
+     * The network currency amount of an order is multiplied by this to determine how much to send to sellers
+     * after fees are subtracted.
+     */
+    uint256 public sellerPaymentFractionFixedPoint = 0x3FE76C8B;
+
+    /**
+     * @notice Only callable by the owner of the contract.
+     *
+     * @dev Sets the trading fee.
+     * 
+     * @param paymentFractionFixedPoint One minus the trading fee, multiplied by (1<<30).
+     * For example, for a trading fee of 0.15%, the value should be floor((1 - 0.0015) * (1 << 30))
+     * = 0x3FE76C8B.
+     */
+    function _owner_setSellerPaymentFractionFixedPoint(uint256 paymentFractionFixedPoint)
+            public ownerOnly {
+        sellerPaymentFractionFixedPoint = paymentFractionFixedPoint;
+    }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Minting values set by the constructor
@@ -340,7 +355,7 @@ abstract contract DublrInternal is OmniToken {
             internal pure returns (uint256 equivNWCAmt) {
         // Round to nearest 1 NWC
         uint256 denom = PRICE_FIXED_POINT_MULTIPLIER * FIXED_POINT;
-        return (dublrAmt * priceNWCPerDUBLR_x1e9 * SELLER_PAYMENT_FRACTION_FIXED_POINT + denom / 2) / denom;
+        return (dublrAmt * priceNWCPerDUBLR_x1e9 * sellerPaymentFractionFixedPoint + denom / 2) / denom;
     }
     
     /**
