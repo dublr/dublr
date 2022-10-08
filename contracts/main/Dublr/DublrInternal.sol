@@ -352,7 +352,7 @@ abstract contract DublrInternal is OmniToken {
      *      less market maker fee.
      */
     function dublrToNWCLessMarketMakerFee(uint256 priceNWCPerDUBLR_x1e9, uint256 dublrAmt)
-            internal pure returns (uint256 equivNWCAmt) {
+            internal view returns (uint256 equivNWCAmt) {
         // Round to nearest 1 NWC
         uint256 denom = PRICE_FIXED_POINT_MULTIPLIER * FIXED_POINT;
         return (dublrAmt * priceNWCPerDUBLR_x1e9 * sellerPaymentFractionFixedPoint + denom / 2) / denom;
