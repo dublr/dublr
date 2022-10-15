@@ -14,52 +14,14 @@ The DEX functionality of Dublr is documented below.
 function mintPrice() public view returns (uint256 mintPriceNWCPerDUBLR_x1e9);
 ```
 
-Returns the current mint price, in NWC per DUBLR (multiplied by 1e9, i.e. in fixed-point representation with the decimal point shifted right 9 places). NWC stands for "network currency", which is the currency of the network which the Dublr contract is deployed on (MATIC for Polygon, ETH for Ethereum, etc.).
+Returns the current mint price, in NWC per DUBLR (multiplied by 1e9, i.e. in fixed-point representation with the decimal point shifted right 9 places), e.g. if `mintPriceNWCPerDUBLR_x1e9 == 5000`, then the mint price is `0.000005000`. NWC stands for "network currency", which is the currency of the network which the Dublr contract is deployed on (MATIC for Polygon, ETH for Ethereum, etc.).
 
 This mint price should be consulted in determining what price to use to sell tokens at. If a sell order is priced above the mint price, there is no way for a buyer to buy tokens in the sell order until the mint price rises above the sell order price.
 
-Dublr uses a polynomial approximation to the exponential function, so the doubling is not quite precise. The mint price schedule is as follows. Mint prices are shown as fractional decimals below rather than in fixed point, e.g. if `mintPriceNWCPerDUBLR_x1e9 == 5000`, then the mint price is shown as `0.000005000`.
-
-| Days since Dublr contract creation | Mint price (NWC per DUBLR) |
-| ---: | ---: |
-| 0 | 0.000005000 |
-| 90 | 0.000009997 |
-| 180 | 0.000019981 |
-| 270 | 0.000039915 |
-| 360 | 0.000079700 |
-| 450 | 0.000159066 |
-| 540 | 0.000317315 |
-| 630 | 0.000632707 |
-| 720 | 0.001260991 |
-| 810 | 0.002512004 |
-| 900 | 0.005001804 |
-| 990 | 0.009954800 |
-| 1080 | 0.019803274 |
-| 1170 | 0.039376907 |
-| 1260 | 0.078260991 |
-| 1350 | 0.155471118 |
-| 1440 | 0.308712220 |
-| 1530 | 0.612715781 |
-| 1620 | 1.215527059 |
-| 1710 | 2.410304001 |
-| 1800 | 4.777270726 |
-| 1890 | 9.464331323 |
-| 1980 | 18.741389513 |
-| 2070 | 37.095045996 |
-| 2160 | 73.389200218 |
-| 2250 | 145.128065282 |
-| 2340 | 286.862348030 |
-| 2430 | 566.759774746 |
-| 2520 | 1119.251364127 |
-| 2610 | 2209.328547933 |
-| 2700 | 4359.098693581 |
-| >=2701 | 0.000000000 |
-
+Dublr uses a polynomial approximation to the exponential function, so the doubling is not quite precise.
 The mint price is returned as `0` after 30 doubling periods (90 days each) from the creation of the Dublr contract, and minting is disabled after this time (i.e. after ~7.5 years total), fixing the total supply forever.
 
-The initial mint price is NWC per DUBLR is 0.000005, meaning that initially, 1/0.000005 == 200000 DUBLR tokens are minted for every NWC token spent by a buyer. If you spent 1 NWC wei right after the Dublr contract is launched, you would end up with 200000 DUBLR wei (both tokens use the same equivalence of 1 token = `10^18` wei), and ninety days later, after the mint price has doubled once, spending another 1 NWC on minting would cause only roughly 100000 DUBLR tokens to be minted. (See [Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md) re. non-monetary-equivalence of DUBLR tokens.)
-
-However, minting will also cease when the supply of tokens listed for sale in the built-in DEX, at a price below the current mint price, exceeds buyer demand. This will happen once the minting price becomes exorbitant relative to the market price.
+Minting will also cease when the supply of tokens listed for sale in the built-in DEX, at a price below the current mint price, exceeds buyer demand. This will happen once the minting price becomes exorbitant relative to the market price.
 
 ### Listing tokens for sale
 
