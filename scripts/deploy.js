@@ -6,6 +6,9 @@ const { ethers } = require("hardhat");
 // on every chain, so that nonce = 0 on deployment to each chain, so that the contract
 // gets the same address on all chains.
 
+// Ensure you have registered the ABI with 4byte.directory: https://www.4byte.directory/submit/
+// This is used by MetaMask to resolve function names.
+
 async function main() {
     const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY, ethers.provider);
     console.log("Deploying from address: " + signer.address);
@@ -27,23 +30,6 @@ async function main() {
     const dublr = await Dublr.deploy(5000, 0);
     const balanceAfter = await signer.getBalance();
     const deploymentCost = balanceBefore.sub(balanceAfter);
-    
-    // Register Dublr DEX functions with Parity registry, since this is used by MetaMask
-    // to look up function names: https://docs.metamask.io/guide/registering-function-names.html
-    // Technically only need to do this once per chain (in fact maybe MetaMask only uses the
-    // Parity registry on mainnet, I have no idea).
-    // N.B. the names of functions that don't take any arguments (e.g. `cancelMySellOrder()`)
-    // cannot be displayed by MetaMask due to a bug.
-    const PARITY_REGISTRY_ADDR = "0x44691B39d1a75dC4E0A0346CBB15E310e6ED1E86";
-    const PARITY_ABI = ["function register(string memory method) external"];
-    const parityContract = new ethers.Contract(PARITY_REGISTRY_ADDR, PARITY_ABI, signer);
-    try {
-        await parityContract.register("buy(uint256,bool,bool)");
-        await parityContract.register("sell(uint256,uint256)");
-        await parityContract.register("cancelMySellOrder()");
-    } catch (e) {
-        console.log("Could not register methods in Parity registry:", e.message);
-    }
 
     console.log("Token address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost) + " ETH");
