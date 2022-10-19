@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 
-// Run with: npx hardhat run --network goerli scripts/deploy.js 
+// Run with: npx hardhat run --network maticmum scripts/deploy.js 
 
 // Note: deployment should be the first thing that is done with the deploying wallet
 // on every chain, so that nonce = 0 on deployment to each chain, so that the contract
@@ -20,7 +20,12 @@ async function main() {
     // mintETHWEIEquiv = mintETHEquiv * 1e18
     // initialMintDUBLRWEI = mintETHWEIEquiv / mintPrice
     // == 2000000000000000000000000000 DUBLR wei (2B DUBLR, 10k ETH equiv @ 0.000005 ETH per DUBLR)
-    const balanceBefore = await signer.getBalance();
+    try {
+        const balanceBefore = await signer.getBalance();
+    } catch (e) {
+        console.log(e.message);
+        throw e;
+    }
     // const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
     // Actually, don't deploy with any tokens assigned to owner:
     // https://www.sec.gov/corpfin/framework-investment-contract-analysis-digital-assets
@@ -34,6 +39,10 @@ async function main() {
     console.log("Token address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost) + " ETH");
     console.log("Contract ABI:", dublr.interface.format(ethers.utils.FormatTypes.full));
+    
+    // N.B. public interface (buy, sell, and cancelMySellOrder) should be registered with
+    // https://www.4byte.directory/ in order for MetaMask to show the name of the non-view
+    // functions called.
 }
 
 main()

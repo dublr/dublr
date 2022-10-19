@@ -59,8 +59,12 @@ module.exports = {
       // So that eth sent/received can be calculated without subtracting out gas used in tests
       initialBaseFeePerGas: 0,
     },
-    goerli: {
-      url: process.env.GOERLI_INFURA_URL,
+    maticmum: {
+      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      account: process.env.WALLET_PRIVATE_KEY,
+    },
+    matic: {
+      url: `https://polygon.infura.io/v3/${process.env.INFURA_API_KEY}`,
       account: process.env.WALLET_PRIVATE_KEY,
     },
   },
