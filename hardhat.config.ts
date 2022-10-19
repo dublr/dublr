@@ -54,24 +54,24 @@ module.exports = {
       },
     },
   },
+  contractSizer: {
+    runOnCompile: true,
+    only: ["Dublr", "OmniToken"],
+  },
   networks: {
     hardhat: {
       // So that eth sent/received can be calculated without subtracting out gas used in tests
       initialBaseFeePerGas: 0,
     },
     maticmum: {
-      url: `https://polygon-mumbai.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: process.env.ALCHEMY_MUMBAI_URL,
       account: process.env.WALLET_PRIVATE_KEY,
     },
     matic: {
-      url: `https://polygon.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: process.env.ALCHEMY_POLYGON_URL,
       account: process.env.WALLET_PRIVATE_KEY,
     },
   },
-  contractSizer: {
-    runOnCompile: true,
-    only: ["Dublr", "OmniToken"],
-  }
 };
 
 export default config;
