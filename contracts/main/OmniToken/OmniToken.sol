@@ -1161,9 +1161,10 @@ contract OmniToken is OmniTokenInternal {
     //
     // Setting up Multichain:
     //     https://github.com/anyswap/CrossChain-Router/issues/5#issuecomment-1241463675
+    //     https://docs.multichain.org/listing-and-integration/token-listing/erc20-cross-chain-options
     //
     // Setting up Polygon PoS bridge:
-    //     https://docs.multichain.org/listing-and-integration/token-listing/erc20-cross-chain-options
+    //     https://wiki.polygon.technology/docs/develop/ethereum-polygon/getting-started/
     
     /**
      * @notice Used by Multichain cross-chain routers to detect the supported router mode.
