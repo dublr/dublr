@@ -45,7 +45,8 @@ async function main() {
 
     console.log("Token address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost));
-    console.log("Contract ABI:", dublr.interface.format(ethers.utils.FormatTypes.full));
+    console.log("Contract ABI:");
+    console.log(dublr.interface.format(ethers.utils.FormatTypes.full));
 }
 
 main()
