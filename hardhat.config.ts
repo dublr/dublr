@@ -65,11 +65,11 @@ module.exports = {
     },
     maticmum: {
       url: process.env.ALCHEMY_MUMBAI_URL,
-      account: process.env.WALLET_PRIVATE_KEY,
+      account: process.env.TESTNET_WALLET_PRIVATE_KEY,
     },
     matic: {
       url: process.env.ALCHEMY_POLYGON_URL,
-      account: process.env.WALLET_PRIVATE_KEY,
+      account: process.env.MAINNET_WALLET_PRIVATE_KEY,
     },
   },
 };

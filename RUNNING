@@ -1,0 +1,5 @@
+Testing:
+npx hardhat test
+
+Deploying:
+npx hardhat run --network maticmum scripts/deploy.js

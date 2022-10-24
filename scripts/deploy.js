@@ -1,3 +1,4 @@
+const hardhat = require("hardhat");
 const { ethers } = require("hardhat");
 
 // Run with: npx hardhat run --network maticmum scripts/deploy.js 
@@ -20,32 +21,27 @@ async function runPromise(promise) {
 }
 
 async function main() {
-    const signer = new ethers.Wallet(process.env.WALLET_PRIVATE_KEY, ethers.provider);
-    console.log("Deploying from address: " + signer.address);
-
-    const Dublr = await ethers.getContractFactory("Dublr", signer);
-
-    // mintPrice = 0.000005   => mintPrice_x1e9 == mintPrice * 1e9 == 5000
-    // mintETHEquiv = 10000
-    // mintETHWEIEquiv = mintETHEquiv * 1e18
-    // initialMintDUBLRWEI = mintETHWEIEquiv / mintPrice
-    // == 2000000000000000000000000000 DUBLR wei (2B DUBLR, 10k ETH equiv @ 0.000005 ETH per DUBLR)
+    const signer = new ethers.Wallet(hardhat.network.config.account, ethers.provider);
+    console.log("Deploying from owner wallet: " + signer.address);
     const balanceBefore = await runPromise(signer.getBalance());
 
-    // const dublr = await Dublr.deploy(5000, "2000000000000000000000000000");
-    // Actually, don't deploy with any tokens assigned to owner:
+    console.log("Creating contract");
+    const Dublr = await ethers.getContractFactory("Dublr", signer);
+
+    // Don't deploy with any tokens assigned to owner:
     // https://www.sec.gov/corpfin/framework-investment-contract-analysis-digital-assets
-    // There may be a reasonable expectation of profits if "The AP [Active Participant] is able to
-    // benefit from its efforts as a result of holding the same class of digital assets as those
-    // being distributed to the public."
-    const dublr = await runPromise(Dublr.deploy(5000, 0, {gasLimit: 2e7}));
+    // There may be a reasonable expectation of profits (making the deployed token a security)
+    // if "The AP [Active Participant] is able to benefit from its efforts as a result of
+    // holding the same class of digital assets as those being distributed to the public."
+    console.log("Deploying contract");
+    const dublr = await runPromise(Dublr.deploy(500000, 0, {gasLimit: 2e7}));
 
     const balanceAfter = await runPromise(signer.getBalance());
     const deploymentCost = balanceBefore.sub(balanceAfter);
 
-    console.log("Token address:", dublr.address);
+    console.log("Contract deployed to address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost));
-    console.log("Contract ABI:");
+    console.log("Contract ABI (use to update dapp):");
     console.log(dublr.interface.format(ethers.utils.FormatTypes.full));
 }
 
