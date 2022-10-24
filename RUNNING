@@ -3,3 +3,7 @@ npx hardhat test
 
 Deploying:
 npx hardhat run --network maticmum scripts/deploy.js
+
+Verifying contract on Polygonscan / Etherscan: Generate flattened contract:
+npx hardhat flatten > artifacts/flattened.sol
+

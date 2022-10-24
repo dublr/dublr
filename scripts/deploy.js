@@ -24,6 +24,7 @@ async function main() {
     const signer = new ethers.Wallet(hardhat.network.config.account, ethers.provider);
     console.log("Deploying from owner wallet: " + signer.address);
     const balanceBefore = await runPromise(signer.getBalance());
+    console.log("Initial wallet balance: " + ethers.utils.formatEther(balanceBefore));
 
     console.log("Creating contract");
     const Dublr = await ethers.getContractFactory("Dublr", signer);
@@ -33,14 +34,26 @@ async function main() {
     // There may be a reasonable expectation of profits (making the deployed token a security)
     // if "The AP [Active Participant] is able to benefit from its efforts as a result of
     // holding the same class of digital assets as those being distributed to the public."
-    console.log("Deploying contract");
-    const dublr = await runPromise(Dublr.deploy(500000, 0, {gasLimit: 2e7}));
+    const constructorArgs = [500000, 0];
 
+    // Estimate gas for deployment
+    const deploymentData = Dublr.interface.encodeDeploy(constructorArgs);
+    const estimatedGas = await ethers.provider.estimateGas({ data: deploymentData });
+    console.log("Estimated gas for deployment: " + estimatedGas);
+    const maxGasPrice = (await runPromise(ethers.provider.getFeeData())).maxFeePerGas;
+    console.log("Max gas price: " + ethers.utils.formatEther(maxGasPrice));
+    console.log("Max deployment cost: " + ethers.utils.formatEther(maxGasPrice.mul(estimatedGas)));
+
+    console.log("Deploying contract");
+    const dublr = await runPromise(Dublr.deploy(...constructorArgs,
+            {gasLimit: 2e7, gasPrice: maxGasPrice.mul(2)}));
+    console.log("Contract deployed to address:", dublr.address);
+
+    await ethers.provider.send("evm_mine");
     const balanceAfter = await runPromise(signer.getBalance());
     const deploymentCost = balanceBefore.sub(balanceAfter);
-
-    console.log("Contract deployed to address:", dublr.address);
     console.log("Deployment cost: " + ethers.utils.formatEther(deploymentCost));
+    
     console.log("Contract ABI (use to update dapp):");
     console.log(dublr.interface.format(ethers.utils.FormatTypes.full));
 }
