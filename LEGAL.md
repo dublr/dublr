@@ -26,7 +26,7 @@ By electing to mint, buy, sell, gift, transmit, store, or otherwise use Dublr to
 
 **No expectation of profits from the holding of DUBLR tokens by the creator of Dublr:** The creator of Dublr is not able to benefit from their own efforts as a result of holding the same class of digital assets as those being distributed to the public, because the creator of Dublr minted no DUBLR tokens at smart contract creation time, and holds no DUBLR tokens. Therefore, there is no expectation that the creator of Dublr would promote their own interests or generate profit from the holding of DUBLR tokens, by seeking to increase or inflate the fair market value of DUBLR tokens.
 
-**No use as a security:** You agree not to bridge or transfer DUBLR tokens to any blockchain or network where DUBLR may be considered a security. If the entire blockchain where your DUBLR token is hosted is declared to be a security, or if in the future the DUBLR token is itself declared to be a security by the US SEC or agency of another relevant government, you agree to immediately stop using DUBLR tokens. If due to the action of some government, Dublr smart contract functionality is forced to be shut down, appropriate measures will be taken to allow users to withdraw some amount of remaining value of DUBLR tokens in the fairest way possible.
+**No use as a security:** You agree not to bridge or transfer DUBLR tokens to any blockchain or network where DUBLR may be considered a security, and you agree not to add liquidity of DUBLR tokens to an exchange that may be considered to be an exchange (a marketplace for trading securities) by the US SEC or your equivalent government agency. If the DUBLR token is declared to be a security by the US SEC or your equivalent government agency, or if the entire underlying blockchain network where the Dublr smart contract is deployed is declared to be a security by the US SEC or your equivalent government agency, you agree to immediately stop using DUBLR tokens.
 
 **Authoritativeness:** Where there is a disagreement between any documentation associated with the Dublr token or the Dublr smart contract and this legal disclaimer, the legal disclaimers in this section ("Legal Agreement and Disclaimers for Dublr and OmniToken") will be deemed to be authoritative, overriding any conflicting information.
 
@@ -63,6 +63,28 @@ The following is a simple legal opinion as to the legality of the Dublr token an
   * Minting is an ongoing process with potentially limitless supply, until 30 doubling periods have passed (~7.5 years), at which time the supply of tokens is fixed forever.
 * Dublr token ownership does not constitute equity ownership of the Dublr smart contract or any other asset.
 * There is further discussion [here](https://www.sec.gov/corpfin/framework-investment-contract-analysis-digital-assets) about what constitutes a security.
+
+#### Update:
+
+In October 2022, right before Dublr was originally supposed to have been released on Ethereum mainnet, SEC Chairman Gary Gensler suggested that tokens running on the Ethereum network, and even Ethereum itself, [could be securities](https://decrypt.co/109881/gensler-proof-of-stake-ethereum-securities), because:
+1. Ethereum's switch to Proof of Stake causes Ethereum transactions to be a security, because staking brings a return of interest, which (according to Gensler) in an "indicium" that Ethereum qualifies as a security under the Howey test.
+1. The majority of Ethereum validators (currently 40.1%) run from US IP addresses -- therefore the entire Ethereum network should be considered to be US-based for regulation purposes (and therefore would fall under US SEC jurisdiction, *if* Ethereum is in fact a security.
+
+An attempt to declare the entirety of the Ethereum ecosystem to be a security would effectively declare the entire ecosystem illegal, since it is impossible to collect KYC (Know Your Customer) data, such as verified passport information, for every Ethereum user, when wallet creation is trivially easy and completely anonymous. Declaring all of Ethereum illegal would of course be devastating to the entire cryptocurrency ecosystem; therefore, Gensler's declaration (based only on his own opinion) is extremely problematic, and constitutes harmful government overreach and undemocratic abuse of power.
+
+Gensler's predecessor said that neither Bitcoin nor Ethereum were securities, which created a false sense of security in the Ethereum community. Possibly this was a trojan horse attack by the SEC, but more likely, different people at the SEC interpret the Howey test in different ways. In fact the current CFTC Chair Rostin Behnam disagrees with Gensler, saying he sees ETH to be [a commodity, not a security](https://blockworks.co/cftc-chair-says-ether-is-a-commodity-hints-that-sec-disagrees/).
+
+Despite these disagreements, the SEC has started filing lawsuits against the creators of ERC20 tokens that run on the Ethereum network, including retroactively, for [tokens created](https://cryptobriefing.com/sec-makes-bizarre-claim-about-u-s-jurisdiction-over-ethereum-in-court-filing/) *before* the switch of Ethereum to proof of stake. They launched this lawsuit right after Ethereum switched to proof of stake, which seems to indicate that they were just waiting in the wings to launch this attack against the cryptocurrency world.
+
+The SEC tends to declare its rules through lawsuits, rather than bothering to go through the legislative process to make laws in a fair, open, and democratic way -- and then the lawsuits that they win become legal precedent. This is how most "securities laws" are actually created -- they are not laws, they are legal precedent. And almost nobody ever wins lawsuits launched by the SEC -- they are too powerful to fight. Due to the potential for abuse of power in this sort of system, you can expect more of the above shenanigans to unfold in the future.
+
+However, for now, running on a network other than Ethereum should be fine as long as all of the following are true for the network. Dublr was launched on the Polygon network for these reasons:
+
+1. The network must not rely purely upon Proof of Stake for its consensus algorithm. (Polygon does not use a pure Proof of Stake validation method, it uses a hybrid algorithm.)
+1. The network must not be majority-based in the US. (Polygon uses a dynamic set of validators that are voted in or out according to a distributed consensus protocol, and the validators could be anywhere in the world. It does not have a central set of validators like Ethereum does.)
+1. The network must not be Ethereum, since whether the Ethereum ecosystem is a security is in question. (Polygon is an L2 network that "bolts onto" Ethereum and is Ethereum compatible, but it does not depend upon or require Ethereum to run, and it has its own native currency and contract storage space.)
+
+For now, in the author's opinion, the Polygon network simply does not qualify as a security. There is no guarantee, however, that the SEC may not declare Polygon to be problematic in the future. As specified in the "Legal Agreement and Disclaimers" above, you agree to stop using the Dublr smart contract and DUBLR tokens if the DUBLR token is ever declared to be a security, or if the network it is deployed upon is ever declared to be a security.
 
 ### The Distributed Exchange (DEX) built into Dublr is not an exchange by US SEC definition
 
