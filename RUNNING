@@ -1,9 +1,14 @@
 Testing:
-npx hardhat test
+    npx hardhat test
 
 Deploying:
-npx hardhat run --network maticmum scripts/deploy.js
+    npx hardhat run --network maticmum scripts/deploy.js
 
 Verifying contract on Polygonscan / Etherscan: Generate flattened contract:
-npx hardhat flatten > artifacts/flattened.sol
+    npx hardhat flatten > artifacts/flattened.sol
+Then remove all but one of the "// SPDX-License-Identifier: MIT" lines.
+Verifying deployed contract:
+    - Optimization: yes
+    - Enter the Solidity Contract Code below: paste from artifacts/flattened.sol, removing test contracts at the end
+    - Misc Settings > Runs (Optimizer): 8
 
