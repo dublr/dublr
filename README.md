@@ -4,7 +4,11 @@
 
 ## Short overview
 
-Dublr is a fungible token smart contract that implements several token standards (ERC20, ERC1363, ERC4524, EIP2612), and a number of ERC20 extensions to mitigate security issues with ERC20. Dublr has its own built-in distributed exchange, so it is both a token and a DEX. Supply is generated on-demand by minting, with a mint price that grows exponentially.
+Dublr is a fungible token smart contract that implements the ERC20 token standard, along with several extensions to make token sending safer and more secure (ERC1363, ERC4524, EIP2612), and a number of other ERC20 extensions to mitigate ERC20 allowance exploit issues.
+
+Furthermore, Dublr contains its own built-in decentralized exchange (DEX) for decentralized finance (DeFi), so it is both a token and a DEX. Supply is generated on-demand by minting, with a mint price that grows exponentially.
+
+The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20 MATIC tokens on the Ethereum network).
 
 ## Long overview
 
