@@ -45,17 +45,15 @@ Note that there is no guarantee of sufficient demand or liquidity on the buy sid
 
 Dublr contract deployment details:
 
-* Address: `TODO`. The source code of the Dublr smart contract can be verified to be the same as the source code in this GitHub repository using PolygonScan. `TODO`
-* Deployment date: `TODO date` (starts the clock on the [mint price schedule](contracts/main/Dublr#getting-the-current-mint-price))
-* Initial mint price: is `0.000005` `TODO` MATIC per DUBLR (`initialMintPriceNWCPerDUBLR_x1e9 == 5000`)
+* Address: Polygon mainnet address `0x3D739A2db4F42632ca090a7a6713a9A62DB994C0`. The source code of the Dublr smart contract can be verified to be the same as the source code in this GitHub repository using PolygonScan.
+* Deployed from git commit: `eb50917365bbbb0d948efe656610c5abe06aa3d8`.
+* Deployment date: 2022-10-14, ~22:10 UTC (this starts the clock on the [mint price schedule](contracts/main/Dublr#getting-the-current-mint-price))
+* Initial mint price: is `0.0005` MATIC per DUBLR (`initialMintPriceNWCPerDUBLR_x1e9 == 500000`)
 * Supply:
-  * Initial mint amount by the creator of Dublr: 2B DUBLR `TODO` (equivalent to 10k MATIC at the initial mint price of 0.000005 MATIC per DUBLR).
-  * All other supply is minted on demand.
+  * Initial amount of DUBLR minted by the creator of Dublr: `0 DUBLR` (the creator of Dublr owns no DUBLR tokens, in order for DUBLR to not be considered a security)
+  * All supply is minted on demand, when the demand for DUBLR tokens exceeds the supply of DUBLR tokens for sale below the mint price.
 
-The Dublr smart contract is intentionally deployed as a *non-proxied contract*, so the code is not changeable or upgradeable by the creator of Dublr after deployment.
-
-* This decision was made in order to increase the security of the deployed Dublr smart contract (since it cannot be changed after deployment). The decision was made only after thorough an enormous amount of development effort, testing, correctness proofs, and internal auditing, and only after two extensive third-party security audits were passed.
-* Non-proxied contracts are far more secure than proxied contracts, as long as the code has passed extensive unit testing and thorough third-party security audits, because they can continue to operate in a trustless way.
+The Dublr smart contract is intentionally deployed as a *non-proxied contract*, so the code is not changeable or upgradeable by the creator of Dublr after deployment. This decision was made in order to increase the security of the deployed Dublr smart contract (since it cannot be changed after deployment). The decision was made only after thorough an enormous amount of development effort, testing, correctness proofs, and internal auditing, and only after two extensive third-party security audits were passed. Non-proxied contracts are far more secure than proxied contracts, as long as the code has passed extensive unit testing and thorough third-party security audits, because they can continue to operate in a trustless way.
 
 ## Fees
 
