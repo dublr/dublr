@@ -10,6 +10,8 @@ Furthermore, Dublr contains its own built-in decentralized exchange (DEX) for de
 
 The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20 MATIC tokens on the Ethereum network).
 
+![image](https://user-images.githubusercontent.com/97215152/197721148-51498198-6c94-4407-9a75-59c8b1484ee3.png)
+
 ## Long overview
 
 **Supported token APIs:** Dublr builds on the [OmniToken](contracts/main/OmniToken) library, which supports a wide range of APIs for:
