@@ -8,7 +8,7 @@ Dublr is a fungible token smart contract that implements the ERC20 token standar
 
 Furthermore, Dublr contains its own built-in decentralized exchange (DEX) for decentralized finance (DeFi), so it is both a token and a DEX. Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
-The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20 MATIC tokens on the Ethereum network).
+The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20-wrapped MATIC tokens on the Ethereum network).
 
 ![image](https://user-images.githubusercontent.com/97215152/197721148-51498198-6c94-4407-9a75-59c8b1484ee3.png)
 
@@ -40,9 +40,15 @@ The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.i
 * Buying: click on the Buy tab, decide how much MATIC to spend on Dublr tokens, accept the terms and conditions, and click "Buy DUBLR tokens".
   * Slippage protection is implemented to ensure you end up with close to as many tokens as you expected, preventing frontrunning attacks.
   * Once you have DUBLR tokens in your ERC20-compatible wallet, you can send DUBLR tokens to another wallet address at any time, using the send functionality of the wallet.
+
+![image](https://user-images.githubusercontent.com/97215152/197721752-cd8a6e66-e2b8-4b6f-86a0-57dd40567c7a.png)
+
 * Selling: click on the Sell tab, decide how many DUBLR tokens to sell and at what price, accept the terms and conditions, and click "List DUBLR tokens for sale".
   * Only one sell order may be listed at a time for a given wallet. Listing another sell order will cancel the active sell order.
   * You can choose to cancel your currently-active sell order under the Sell tab anytime before the order is bought by a buyer.
+
+![image](https://user-images.githubusercontent.com/97215152/197722095-439aa9fb-a858-4acf-ab32-b941a5f1ed52.png)
+
 * You can view the depth chart and the orderbook in the Orderbook tab.
 
 Note that there is no guarantee of sufficient demand or liquidity on the buy side of any decentralized or centralized exchange, including the Dublr DEX, to be able to sell DUBLR at any given price. Therefore, there is no guarantee whatsoever of profit from trading Dublr tokens. See the full [Legal Agreement and Disclaimers](https://github.com/dublr/dublr/blob/main/LEGAL.md) for more information.
