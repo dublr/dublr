@@ -57,7 +57,7 @@ Note that there is no guarantee of sufficient demand or liquidity on the buy sid
 
 Dublr contract deployment details:
 
-* Address: Polygon mainnet address [`0x3D739A2db4F42632ca090a7a6713a9A62DB994C0`](https://polygonscan.com/address/0x3D739A2db4F42632ca090a7a6713a9A62DB994C0).
+* Address: Polygon mainnet address [`0x3D739A2db4F42632ca090a7a6713a9A62DB994C0`](https://polygonscan.com/token/0x3D739A2db4F42632ca090a7a6713a9A62DB994C0).
 * Deployed from git commit: [`eb50917365bbbb0d948efe656610c5abe06aa3d8`](https://github.com/dublr/dublr/tree/eb50917365bbbb0d948efe656610c5abe06aa3d8).
 * The source code of the Dublr smart contract can be [verified to be the same as the source code in this GitHub repository using PolygonScan](https://polygonscan.com/address/0x3D739A2db4F42632ca090a7a6713a9A62DB994C0#code).
 * Deployment date: 2022-10-14, 22:07 UTC (this starts the clock on the [mint price schedule](contracts/main/Dublr#getting-the-current-mint-price)).
