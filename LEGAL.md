@@ -98,5 +98,4 @@ For now, in the author's opinion, the Polygon network simply does not qualify as
   * The Dublr DEX does not assist parties in negotiating transactions; transactions are fully disintermediated by means of being fully decentralized and fully automated.
   * The owner of the Dublr contract has no ability to directly intermediate in or control any trade between two private parties using the Dublr DEX.
   * No actor "uses" non-discretionary methods to settle transactions using the Dublr DEX.
-* There is further discussion [here](https://www.jdsupra.com/legalnews/crypto-exchanges-the-sec-s-proposed-9029987) on what constitutes an exchange.
 
