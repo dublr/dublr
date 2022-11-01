@@ -8,7 +8,9 @@ Dublr is a fungible token smart contract that implements the ERC20 token standar
 
 Furthermore, Dublr contains its own built-in decentralized exchange (DEX) for decentralized finance (DeFi), so it is both a token and a DEX. Supply is generated on-demand by minting, with a mint price that grows exponentially.
 
-The Dublr DEX is accessible at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20-wrapped MATIC tokens on the Ethereum network).
+[Read the Dublr whitepaper here](whitepaper.pdf).
+
+DUBLR tokens may be purchased using the Dublr DEX, hosted at [https://dublr.github.io/](https://dublr.github.io/) . Dublr is deployed on Polygon mainnet, therefore DUBLR tokens must be bought with Polygon MATIC (not ERC20-wrapped MATIC tokens on the Ethereum network).
 
 ![image](https://user-images.githubusercontent.com/97215152/197721148-51498198-6c94-4407-9a75-59c8b1484ee3.png)
 
