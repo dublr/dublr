@@ -1,0 +1,1 @@
+`flattened.sol` is the flattened source code of the Dublr contract (obtained from git commit eb50917365bbbb0d948efe656610c5abe06aa3d8) that has been deployed to Polygon mainnet. This source is identical to the source verified on [PolygonScan](https://polygonscan.com/address/0x3D739A2db4F42632ca090a7a6713a9A62DB994C0#code).
